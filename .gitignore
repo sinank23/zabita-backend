@@ -1,0 +1,13 @@
+# Çevre değişkenleri (Şifreler)
+.env
+
+# Yüklenen fotoğraflar
+uploaded_images/
+
+# Python önbellek dosyaları
+__pycache__/
+*.pyc
+
+# Sanal ortam (Eğer venv kullanıyorsan)
+venv/
+env/
