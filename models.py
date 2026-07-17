@@ -26,7 +26,9 @@ class BusinessCategory(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     businesses = relationship("Business", back_populates="category")
-    criteria = relationship("InspectionCriteria", back_populates="category")
+    
+    # InspectionCriteria tablosu şu an olmadığı için bu ilişki geçici olarak kapatıldı:
+    # criteria = relationship("InspectionCriteria", back_populates="category")
 
 # 3. İşletmeler Tablosu
 class Business(Base):
@@ -60,7 +62,6 @@ class Inspection(Base):
 
     business = relationship("Business", back_populates="inspections")
     zabita = relationship("User", back_populates="inspections")
-
 
 # 5. Denetim Fotoğrafları Tablosu
 class InspectionPhoto(Base):

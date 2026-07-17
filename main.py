@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 import models
 from database import engine
-from routers import users, businesses, inspections, photos # photos eklendi
+from routers import users, businesses, inspections, photos, auth # photos eklendi
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -11,6 +11,7 @@ app.include_router(users.router)
 app.include_router(businesses.router)
 app.include_router(inspections.router)
 app.include_router(photos.router) # Yeni departman eklendi
+app.include_router(auth.router, prefix="/auth")
 
 @app.get("/")
 def read_root():

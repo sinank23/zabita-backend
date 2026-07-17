@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, HTTPException
 from sqlalchemy.orm import Session
 import models
 from database import SessionLocal
 import shutil
 import os
 from uuid import uuid4
+from services.ai_vision import analyze_image_with_ai
+import uuid
+
 
 router = APIRouter(
     prefix="/photos",
@@ -53,3 +56,31 @@ def upload_photo(inspection_id: int, file: UploadFile = File(...), db: Session =
         "photo_id": new_photo.id,
         "photo_url": file_path
     }
+
+@router.post("/analyze/")
+async def upload_and_analyze_photo(
+    criteria_text: str = Form(..., description="Yapay zekanın denetleyeceği kural (Örn: Çalışanların örneği temiz mi.)"),
+    file: UploadFile = File(...)
+):
+    try:
+        # İlk olarak fotoğrafı güvenli bir isimle sunucuya kaydedelim
+        file_extension = file.filename.split(".")[-1]
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        file_location = f"uploaded_images/{unique_filename}"
+
+        with open(file_location, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # daha sonra kaydedilen fotoyu ve zabıta kriterine yapay zekaya gönderelim.
+        ai_result = analyze_image_with_ai(image_path=file_location, criteria_text=criteria_text)
+
+        return {
+            "status": "success",
+            "filename": unique_filename,
+            "ai_analysis": ai_result
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"İşlem sırasında hata oluştu: {str(e)}")
+    
+        
