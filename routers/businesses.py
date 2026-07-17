@@ -1,16 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+
 import models
 import schemas
-from database import SessionLocal
+# get_db yerine doğrudan SessionLocal'ı çağırıyoruz
+from database import SessionLocal 
+from routers.auth import get_current_user
 
-# İşte main.py'nin arayıp da bulamadığı o meşhur 'router' değişkeni burası:
 router = APIRouter(
     prefix="/businesses",
-    tags=["İşletme ve Kategori İşlemleri"]
+    tags=["Businesses"]
 )
 
+# Senin mimarine uygun olan veritabanı bağlantı fonksiyonu
 def get_db():
     db = SessionLocal()
     try:
@@ -18,34 +21,48 @@ def get_db():
     finally:
         db.close()
 
-# --- KATEGORİ İŞLEMLERİ ---
+@router.post("/", response_model=schemas.BusinessResponse, status_code=status.HTTP_201_CREATED)
+def create_business(
+    business: schemas.BusinessCreate, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user) 
+):
+    # İşletme adında çakışma var mı kontrolü
+    existing_business = db.query(models.Business).filter(models.Business.name == business.name).first()
+    if existing_business:
+        raise HTTPException(status_code=400, detail="Bu isimde bir işletme zaten kayıtlı.")
 
-@router.post("/categories/", response_model=schemas.CategoryResponse)
-def create_category(category: schemas.CategoryCreate, db: Session = Depends(get_db)):
-    new_category = models.BusinessCategory(name=category.name)
-    db.add(new_category)
-    db.commit()
-    db.refresh(new_category)
-    return new_category
-
-@router.get("/categories/", response_model=List[schemas.CategoryResponse])
-def get_categories(db: Session = Depends(get_db)):
-    return db.query(models.BusinessCategory).all()
-
-# --- İŞLETME İŞLEMLERİ ---
-
-@router.post("/", response_model=schemas.BusinessResponse)
-def create_business(business: schemas.BusinessCreate, db: Session = Depends(get_db)):
-    category = db.query(models.BusinessCategory).filter(models.BusinessCategory.id == business.category_id).first()
-    if not category:
-        raise HTTPException(status_code=404, detail="Belirtilen kategori bulunamadı.")
-        
     new_business = models.Business(**business.model_dump())
     db.add(new_business)
     db.commit()
     db.refresh(new_business)
+    
     return new_business
 
 @router.get("/", response_model=List[schemas.BusinessResponse])
-def get_businesses(db: Session = Depends(get_db)):
-    return db.query(models.Business).all()
+def get_businesses(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user) 
+):
+    businesses = db.query(models.Business).all()
+    return businesses
+
+
+
+@router.get("/{business_id}", response_model=schemas.BusinessResponse)
+def get_business_by_id(
+    business_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    business = db.query(models.Business).filter(
+        models.Business.id == business_id
+    ).first()
+
+    if not business:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="İşletme bulunamadı."
+        )
+
+    return business

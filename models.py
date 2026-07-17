@@ -14,8 +14,7 @@ class User(Base):
     role = Column(String(10), default="zabita")
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Bir zabıtanın birden fazla denetimi olabilir
-    inspections = relationship("Inspection", back_populates="zabita")
+    inspections = relationship("Inspection", back_populates="inspector")
 
 # 2. İşletme Kategorileri Tablosu
 class BusinessCategory(Base):
@@ -26,9 +25,6 @@ class BusinessCategory(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     businesses = relationship("Business", back_populates="category")
-    
-    # InspectionCriteria tablosu şu an olmadığı için bu ilişki geçici olarak kapatıldı:
-    # criteria = relationship("InspectionCriteria", back_populates="category")
 
 # 3. İşletmeler Tablosu
 class Business(Base):
@@ -47,23 +43,35 @@ class Business(Base):
     category = relationship("BusinessCategory", back_populates="businesses")
     inspections = relationship("Inspection", back_populates="business")
 
-# 4. Denetim Kayıtları Tablosu
+# 4. Soru Havuzu Tablosu
+class InspectionCriterion(Base):
+    __tablename__ = "inspection_criteria"
+
+    id = Column(Integer, primary_key=True, index=True)
+    category_id = Column(Integer, ForeignKey("business_categories.id"))
+    question_text = Column(String(255), nullable=False)
+
+    category = relationship("BusinessCategory")
+
+# 5. Denetim Ana Kayıt (Oturum) Tablosu
 class Inspection(Base):
     __tablename__ = "inspections"
 
     id = Column(Integer, primary_key=True, index=True)
     business_id = Column(Integer, ForeignKey("businesses.id"))
-    zabita_id = Column(Integer, ForeignKey("users.id"))
-    zabita_notes = Column(Text)
-    ai_calculated_score = Column(Float)
-    final_score = Column(Float)
+    inspector_id = Column(Integer, ForeignKey("users.id"))
+    notes = Column(Text, nullable=True)     
+    ai_calculated_score = Column(Float, nullable=True) 
+    final_score = Column(Float, nullable=True)         
     status = Column(String(20), default="pending")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    inspection_date = Column(DateTime, default=datetime.utcnow)
 
     business = relationship("Business", back_populates="inspections")
-    zabita = relationship("User", back_populates="inspections")
+    inspector = relationship("User", back_populates="inspections")
+    answers = relationship("InspectionAnswer", back_populates="inspection")
+    photos = relationship("InspectionPhoto", back_populates="inspection")
 
-# 5. Denetim Fotoğrafları Tablosu
+# 6. Denetim Fotoğrafları Tablosu
 class InspectionPhoto(Base):
     __tablename__ = "inspection_photos"
 
@@ -73,4 +81,16 @@ class InspectionPhoto(Base):
     ai_analysis_result = Column(Text, nullable=True) 
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    inspection = relationship("Inspection", backref="photos")
+    inspection = relationship("Inspection", back_populates="photos")
+
+# 7. Cevaplar Tablosu
+class InspectionAnswer(Base):
+    __tablename__ = "inspection_answers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    inspection_id = Column(Integer, ForeignKey("inspections.id"))
+    criterion_id = Column(Integer, ForeignKey("inspection_criteria.id"))
+    is_yes = Column(Boolean, nullable=False)
+
+    inspection = relationship("Inspection", back_populates="answers")
+    criterion = relationship("InspectionCriterion")
