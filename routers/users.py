@@ -1,61 +1,82 @@
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+
 import models
 import schemas
-from database import SessionLocal
-from services.security import get_password_hash
 
-# Router'ımızı oluşturuyoruz (Danışmanın yönlendireceği departman)
+from database import get_db
+from services.security import get_password_hash
+from routers.auth import get_current_user
+
+
 router = APIRouter(
     prefix="/users",
     tags=["Kullanıcı İşlemleri"]
 )
 
-# GÜVENLİK KİLİDİ: Sisteme giriş yapılıp token alınacak kapının adresini tanımlıyoruz
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
-# Veritabanı bağlantısı için bağımlılık
-def get_db():
-    db = SessionLocal()
+@router.post(
+    "/",
+    response_model=schemas.UserResponse,
+    status_code=status.HTTP_201_CREATED
+)
+def create_user(
+    user: schemas.UserCreate,
+    db: Session = Depends(get_db)
+):
     try:
-        yield db
-    finally:
-        db.close()
+        # Aynı e-posta adresine sahip kullanıcı var mı?
+        existing_user = (
+            db.query(models.User)
+            .filter(models.User.email == user.email)
+            .first()
+        )
 
-@router.post("/", response_model=schemas.UserResponse)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    try:
-        # 1. E-posta adresi sistemde zaten var mı kontrolü
-        db_user = db.query(models.User).filter(models.User.email == user.email).first()
-        if db_user:
-            raise HTTPException(status_code=400, detail="Bu email adresi zaten kayıtlı.")
-        
-        # 2. Şifreyi güvenlik motorumuzla gerçek anlamda kriptoluyoruz
-        real_hashed_password = get_password_hash(user.password) 
-        
-        # 3. Yeni kullanıcıyı şifrelenmiş parola ile oluşturuyoruz
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Bu e-posta adresi zaten kayıtlı."
+            )
+
+        # Kullanıcının düz şifresini hashle
+        hashed_password = get_password_hash(user.password)
+
+        # Veritabanına kaydedilecek User modelini oluştur
         new_user = models.User(
             full_name=user.full_name,
             email=user.email,
-            password_hash=real_hashed_password,
+            password_hash=hashed_password,
             role=user.role
         )
-        
+
+        # Kullanıcıyı veritabanına ekle
         db.add(new_user)
         db.commit()
-        db.refresh(new_user)
-        
-        return new_user
-        
-    except Exception as e:
-        # HATA OLURSA ÇÖKME, HATANIN NE OLDUĞUNU SWAGGER'A GÖNDER!
-        raise HTTPException(status_code=500, detail=f"SİSTEM HATASI: {str(e)}")
 
-# KİLİTLİ ODA TESTİ (Sadece Token ile girilebilir)
-@router.get("/me")
-def test_guvenli_alan(token: str = Depends(oauth2_scheme)):
-    return {
-        "mesaj": "Tebrikler! Güvenlik duvarını aştınız ve güvenli alana girdiniz.",
-        "sizin_dijital_kimliginiz": token
-    }
+        # Veritabanının oluşturduğu id ve created_at gibi alanları yenile
+        db.refresh(new_user)
+
+        return new_user
+
+    except HTTPException:
+        # Bilerek oluşturduğumuz 400 gibi HTTP hatalarını aynen gönder
+        raise
+
+    except Exception as e:
+        # Yarım kalan veritabanı işlemini geri al
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Kullanıcı oluşturulurken sistem hatası oluştu: {str(e)}"
+        )
+
+
+@router.get(
+    "/me",
+    response_model=schemas.UserResponse
+)
+def get_my_profile(
+    current_user: models.User = Depends(get_current_user)
+):
+    return current_user

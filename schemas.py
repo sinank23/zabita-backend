@@ -8,13 +8,14 @@ class UserBase(BaseModel):
     email: str
     role: Optional[str] = "zabita"
 
+# yeni kullanıcı oluşturulurken istemciden gelen veri.
 class UserCreate(UserBase):
     password: str 
 
 class UserResponse(UserBase):
     id: int
     created_at: datetime
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True}  # pydanticin json verisini okuması için
 
 # --- KATEGORİ (CATEGORY) ŞEMALARI ---
 class CategoryBase(BaseModel):
@@ -40,6 +41,7 @@ class BusinessBase(BaseModel):
 
 class BusinessCreate(BusinessBase):
     pass
+    google_place_id: Optional[str] = None   
 
 class BusinessResponse(BusinessBase):
     id: int
@@ -87,4 +89,11 @@ class InspectionResponse(BaseModel):
     final_score: Optional[float] = None
     inspection_date: datetime
     answers: List[AnswerResponse]
+    model_config = {"from_attributes": True}
+
+class PhotoResponse(BaseModel):
+    id: int
+    photo_path: str
+    ai_analysis_result: str | None = None
+
     model_config = {"from_attributes": True}

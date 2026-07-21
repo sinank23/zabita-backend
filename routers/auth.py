@@ -73,8 +73,14 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
         
     # Çözülen email ile veritabanında zabıta personelini (User) arıyoruz
-    user = db.query(models.User).filter(models.User.email == email).first()
-    if user is None:
+    user = db.query(models.User).filter(models.User.email == email).first() 
+# 
+
+
+
+    if user is None:                 
         raise credentials_exception
+    
+
         
     return user

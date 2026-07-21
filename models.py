@@ -43,6 +43,10 @@ class Business(Base):
     category = relationship("BusinessCategory", back_populates="businesses")
     inspections = relationship("Inspection", back_populates="business")
 
+    # 20.07.2026 eklendi
+    google_place_id = Column(String(255), nullable=True) # google maps id
+
+    google_reviews = relationship("GoogleReview", back_populates="business", cascade="all, delete-orphan" )
 # 4. Soru Havuzu Tablosu
 class InspectionCriterion(Base):
     __tablename__ = "inspection_criteria"
@@ -69,15 +73,15 @@ class Inspection(Base):
     business = relationship("Business", back_populates="inspections")
     inspector = relationship("User", back_populates="inspections")
     answers = relationship("InspectionAnswer", back_populates="inspection")
-    photos = relationship("InspectionPhoto", back_populates="inspection")
+    photos = relationship("InspectionPhoto", back_populates="inspection", cascade="all, delete-orphan")
 
-# 6. Denetim Fotoğrafları Tablosu
+# 6. Denetim Fotoğrafları Tablosu (BİRLEŞTİRİLMİŞ TEK VERSİYON)
 class InspectionPhoto(Base):
     __tablename__ = "inspection_photos"
 
     id = Column(Integer, primary_key=True, index=True)
-    inspection_id = Column(Integer, ForeignKey("inspections.id"))
-    photo_url = Column(String(255)) 
+    inspection_id = Column(Integer, ForeignKey("inspections.id"), nullable=False)
+    photo_path = Column(String(500), nullable=False) 
     ai_analysis_result = Column(Text, nullable=True) 
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -94,3 +98,16 @@ class InspectionAnswer(Base):
 
     inspection = relationship("Inspection", back_populates="answers")
     criterion = relationship("InspectionCriterion")
+
+
+class GoogleReview(Base):
+    __tablename__ = "google_reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id")) # hangi işletmeye ait 
+    author_name = Column(String(150)) #yorumu yapan kişi
+    rating = Column(Float) # verdiği yıldız
+    text = Column(String(1000))
+    publish_date = Column(String(50))
+
+    business = relationship("Business", back_populates="google_reviews")
