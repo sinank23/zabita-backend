@@ -85,10 +85,10 @@ class InspectionResponse(BaseModel):
     inspector_id: int
     notes: Optional[str] = None
     status: str
-    ai_calculated_score: Optional[float] = None
-    final_score: Optional[float] = None
+    ai_summary: Optional[str] = None
     inspection_date: datetime
     answers: List[AnswerResponse]
+    
     model_config = {"from_attributes": True}
 
 class PhotoResponse(BaseModel):

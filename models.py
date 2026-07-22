@@ -65,7 +65,7 @@ class Inspection(Base):
     business_id = Column(Integer, ForeignKey("businesses.id"))
     inspector_id = Column(Integer, ForeignKey("users.id"))
     notes = Column(Text, nullable=True)     
-    ai_calculated_score = Column(Float, nullable=True) 
+    ai_summary = Column(Text, nullable=True) # ai'nin değerlendirmesi
     final_score = Column(Float, nullable=True)         
     status = Column(String(20), default="pending")
     inspection_date = Column(DateTime, default=datetime.utcnow)
@@ -111,3 +111,6 @@ class GoogleReview(Base):
     publish_date = Column(String(50))
 
     business = relationship("Business", back_populates="google_reviews")
+
+
+
