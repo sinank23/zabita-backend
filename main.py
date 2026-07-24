@@ -6,8 +6,11 @@ models.Base.metadata.create_all(bind=engine)
 from fastapi.staticfiles import StaticFiles
 
 
-# FastAPI uygulamasını oluştur.
+# fastapiyi oluştur
 app = FastAPI(title="Zabıta AI API", description="Zabıta Mobil Uygulaması Backend Servisi")
+
+
+
 # Yüklenen fotoğrafların dışarıdan URL ile görüntülenmesini sağlar
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 

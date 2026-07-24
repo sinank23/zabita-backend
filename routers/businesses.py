@@ -110,7 +110,7 @@ async def sync_business_reviews(
     if not business.google_place_id:
         raise HTTPException(status_code=400, detail="Bu işletmenin Google Place ID'si kayıtlı değil!")
 
-    # 2. Adım: Yazdığımız Google kuryesini çağırıp "Git şu dükkanın yorumlarını al gel" diyoruz.
+    # 2. Adım: Yazdığımız Google kuryesini çağırıp git şu dükkanın yorumlarını al gel" diyoruz.
     fetched_reviews = await fetch_google_reviews(business.google_place_id)
     
     # Eğer dükkanın hiç yorumu yoksa boşuna uğraşmayıp "Yorum yok" deyip geri dönüyoruz.
