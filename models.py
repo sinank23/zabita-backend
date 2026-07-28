@@ -1,7 +1,20 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, ForeignKey, DateTime, Text
-from sqlalchemy.orm import relationship
 from datetime import datetime
+
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    JSON,
+    String,
+    Text,
+)
+from sqlalchemy.orm import relationship
+
 from database import Base
+
 
 # 1. Kullanıcılar Tablosu
 class User(Base):
@@ -14,7 +27,11 @@ class User(Base):
     role = Column(String(10), default="zabita")
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    inspections = relationship("Inspection", back_populates="inspector")
+    inspections = relationship(
+        "Inspection",
+        back_populates="inspector"
+    )
+
 
 # 2. İşletme Kategorileri Tablosu
 class BusinessCategory(Base):
@@ -24,93 +41,196 @@ class BusinessCategory(Base):
     name = Column(String(100), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    businesses = relationship("Business", back_populates="category")
+    businesses = relationship(
+        "Business",
+        back_populates="category"
+    )
+
 
 # 3. İşletmeler Tablosu
 class Business(Base):
     __tablename__ = "businesses"
 
     id = Column(Integer, primary_key=True, index=True)
-    category_id = Column(Integer, ForeignKey("business_categories.id"))
+
+    category_id = Column(
+        Integer,
+        ForeignKey("business_categories.id"),
+        nullable=True
+    )
+
     name = Column(String(150), nullable=False)
-    address = Column(Text)
-    latitude = Column(Float)
-    longitude = Column(Float)
-    owner_name = Column(String(100))
-    contact_info = Column(String(100))
+    address = Column(Text, nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    owner_name = Column(String(100), nullable=True)
+    contact_info = Column(String(100), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    category = relationship("BusinessCategory", back_populates="businesses")
-    inspections = relationship("Inspection", back_populates="business")
+    # Google Maps işletme kimliği
+    google_place_id = Column(String(255), nullable=True)
 
-    # 20.07.2026 eklendi
-    google_place_id = Column(String(255), nullable=True) # google maps id
+    category = relationship(
+        "BusinessCategory",
+        back_populates="businesses"
+    )
 
-    google_reviews = relationship("GoogleReview", back_populates="business", cascade="all, delete-orphan" )
+    inspections = relationship(
+        "Inspection",
+        back_populates="business"
+    )
+
+    google_reviews = relationship(
+        "GoogleReview",
+        back_populates="business",
+        cascade="all, delete-orphan"
+    )
+
+
 # 4. Soru Havuzu Tablosu
 class InspectionCriterion(Base):
     __tablename__ = "inspection_criteria"
 
     id = Column(Integer, primary_key=True, index=True)
-    category_id = Column(Integer, ForeignKey("business_categories.id"))
+
+    category_id = Column(
+        Integer,
+        ForeignKey("business_categories.id"),
+        nullable=True
+    )
+
     question_text = Column(String(255), nullable=False)
 
     category = relationship("BusinessCategory")
 
-# 5. Denetim Ana Kayıt (Oturum) Tablosu
+    answer_records = relationship(
+        "InspectionAnswer",
+        back_populates="criterion"
+    )
+
+
+# 5. Denetim Ana Kayıt Tablosu
 class Inspection(Base):
     __tablename__ = "inspections"
 
     id = Column(Integer, primary_key=True, index=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"))
-    inspector_id = Column(Integer, ForeignKey("users.id"))
-    notes = Column(Text, nullable=True)     
-    ai_summary = Column(Text, nullable=True) # ai'nin değerlendirmesi
-    final_score = Column(Float, nullable=True)         
-    status = Column(String(20), default="pending")
-    inspection_date = Column(DateTime, default=datetime.utcnow)
 
-    business = relationship("Business", back_populates="inspections")
-    inspector = relationship("User", back_populates="inspections")
-    answers = relationship("InspectionAnswer", back_populates="inspection")
-    photos = relationship("InspectionPhoto", back_populates="inspection", cascade="all, delete-orphan")
+    # Android uygulamasından gelen temel denetim bilgileri
+    businessName = Column(String(150), index=True, nullable=False)
+    address = Column(String(500), nullable=True)
 
-# 6. Denetim Fotoğrafları Tablosu (BİRLEŞTİRİLMİŞ TEK VERSİYON)
+    # Checkbox cevaplarını JSON olarak tutuyoruz
+    answers = Column(JSON, nullable=True)
+
+    inspector_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=True
+    )
+
+    business_id = Column(
+        Integer,
+        ForeignKey("businesses.id"),
+        nullable=True
+    )
+
+    inspector = relationship(
+        "User",
+        back_populates="inspections"
+    )
+
+    business = relationship(
+        "Business",
+        back_populates="inspections"
+    )
+
+    # Bir denetimin birden fazla fotoğrafı olabilir
+    photos = relationship(
+        "InspectionPhoto",
+        back_populates="inspection",
+        cascade="all, delete-orphan"
+    )
+
+    # Ayrı inspection_answers tablosundaki cevap kayıtları
+    # JSON olan "answers" alanıyla çakışmaması için adı answer_records
+    answer_records = relationship(
+        "InspectionAnswer",
+        back_populates="inspection",
+        cascade="all, delete-orphan"
+    )
+
+
+# 6. Denetim Fotoğrafları Tablosu
 class InspectionPhoto(Base):
     __tablename__ = "inspection_photos"
 
     id = Column(Integer, primary_key=True, index=True)
-    inspection_id = Column(Integer, ForeignKey("inspections.id"), nullable=False)
-    photo_path = Column(String(500), nullable=False) 
-    ai_analysis_result = Column(Text, nullable=True) 
+
+    inspection_id = Column(
+        Integer,
+        ForeignKey("inspections.id"),
+        nullable=False
+    )
+
+    photo_path = Column(String(500), nullable=False)
+    ai_analysis_result = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    inspection = relationship("Inspection", back_populates="photos")
+    inspection = relationship(
+        "Inspection",
+        back_populates="photos"
+    )
 
-# 7. Cevaplar Tablosu
+
+# 7. Denetim Cevapları Tablosu
 class InspectionAnswer(Base):
     __tablename__ = "inspection_answers"
 
     id = Column(Integer, primary_key=True, index=True)
-    inspection_id = Column(Integer, ForeignKey("inspections.id"))
-    criterion_id = Column(Integer, ForeignKey("inspection_criteria.id"))
+
+    inspection_id = Column(
+        Integer,
+        ForeignKey("inspections.id"),
+        nullable=False
+    )
+
+    criterion_id = Column(
+        Integer,
+        ForeignKey("inspection_criteria.id"),
+        nullable=False
+    )
+
     is_yes = Column(Boolean, nullable=False)
 
-    inspection = relationship("Inspection", back_populates="answers")
-    criterion = relationship("InspectionCriterion")
+    inspection = relationship(
+        "Inspection",
+        back_populates="answer_records"
+    )
+
+    criterion = relationship(
+        "InspectionCriterion",
+        back_populates="answer_records"
+    )
 
 
+# 8. Google Yorumları Tablosu
 class GoogleReview(Base):
     __tablename__ = "google_reviews"
 
     id = Column(Integer, primary_key=True, index=True)
-    business_id = Column(Integer, ForeignKey("businesses.id")) # hangi işletmeye ait 
-    author_name = Column(String(150)) #yorumu yapan kişi
-    rating = Column(Float) # verdiği yıldız
-    text = Column(String(1000))
-    publish_date = Column(String(50))
 
-    business = relationship("Business", back_populates="google_reviews")
+    business_id = Column(
+        Integer,
+        ForeignKey("businesses.id"),
+        nullable=False
+    )
 
+    author_name = Column(String(150), nullable=True)
+    rating = Column(Float, nullable=True)
+    text = Column(String(1000), nullable=True)
+    publish_date = Column(String(50), nullable=True)
 
-
+    business = relationship(
+        "Business",
+        back_populates="google_reviews"
+    )

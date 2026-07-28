@@ -75,22 +75,19 @@ class AnswerResponse(AnswerBase):
 
 # --- DENETİM (INSPECTION) ŞEMALARI ---
 class InspectionCreate(BaseModel):
-    business_id: int
-    notes: Optional[str] = None
-    answers: List[AnswerCreate]
+    businessName: str
+    address: str
+    answers: list[bool]
 
 class InspectionResponse(BaseModel):
     id: int
-    business_id: int
-    inspector_id: int
-    notes: Optional[str] = None
-    status: str
-    ai_summary: Optional[str] = None
-    inspection_date: datetime
-    answers: List[AnswerResponse]
+    businessName: str
+    address: str
+    answers: list[bool]
     
     model_config = {"from_attributes": True}
 
+    
 class PhotoResponse(BaseModel):
     id: int
     photo_path: str
