@@ -1,6 +1,7 @@
 import os
 import shutil
 import uuid
+from services.ai_vision import synthesize_inspection_data
 from typing import List
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -282,15 +283,17 @@ def get_inspection_photos(
 
 
 # ---------------------------------------------------------
-# DENETİM PUANI HESAPLAMA
+# DENETİM PUANI HESAPLAMA yapay zeka entegreli
 # ---------------------------------------------------------
 
-@router.post("/{inspection_id}/complete")
-def complete_inspection(
+@router.post("/{inspection_id}/complete/")
+async def complete_inspection(
     inspection_id: int,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    db: Session = Depends(get_db)
+
 ):
+
+    # denetimi bul getir
     inspection = (
         db.query(models.Inspection)
         .filter(models.Inspection.id == inspection_id)
@@ -300,82 +303,67 @@ def complete_inspection(
     if not inspection:
         raise HTTPException(
             status_code=404,
-            detail="Denetim bulunamadı."
+            detail="Denetim bulunamadı"
         )
 
-    answer_records = (
-        db.query(models.InspectionAnswer)
-        .filter(
-            models.InspectionAnswer.inspection_id
-            == inspection_id
-        )
+
+    # form cevaplarını tutup puan hesaplama işlemi
+    answers_text = str(inspection.answers) if inspection.answers else "Cevap yok."
+    total_questions = 0
+    yes_answers = 0
+    calculated_score = 0.0
+
+    if inspection.answers and isinstance(inspection.answers, list):
+        total_questions = len(inspection.answers)
+        if total_questions > 0:
+            yes_answers = sum(1 for answer in inspection.answers if answer is True)
+            calculated_score = (yes_answers / total_questions) * 100
+
+    # denetim fotoğraflarının analizlerini alma işlemi
+    photos = (
+        db.query(models.InspectionPhoto)
+        .filter(models.InspectionPhoto.inspection_id == inspection_id)
         .all()
     )
+    photo_analyses_list = [p.ai_analysis_result for p in photos if p.ai_analysis_result]
+    photo_analyses_text = "\n".join(photo_analyses_list) if photo_analyses_list else "Fotoğraf yüklenmemiş"
 
-    # Ayrı inspection_answers tablosunda cevap varsa
-    if answer_records:
-        total_questions = len(answer_records)
 
-        yes_answers = sum(
-            1
-            for answer in answer_records
-            if answer.is_yes
+    # google yorumlarını alalım ve toplayalım
+
+    reviews_text = "Yorum bulunamadı."
+    if inspection.business_id:
+        reviews = (
+            db.query(models.GoogleReview)
+            .filter(models.GoogleReview.business_id == inspection.business_id)
+            .all()
         )
+        reviews_list = [f"- {r.text}" for r in reviews if r.text]
+        if reviews_list:
+            reviews_text = "\n".join(reviews_list)
 
-        calculated_score = (
-            yes_answers / total_questions
-        ) * 100
 
-        return {
-            "message": "Denetim puanı hesaplandı.",
-            "inspection_id": inspection.id,
-            "score": calculated_score,
-            "total_questions": total_questions,
-            "yes_answers": yes_answers
-        }
+    # google geminiyle fotoğraf analizi
 
-    # Cevaplar JSON olarak kaydedilmişse
-    if inspection.answers:
-        if isinstance(inspection.answers, list):
-            total_questions = len(
-                inspection.answers
-            )
-
-            if total_questions == 0:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Cevap listesi boş."
-                )
-
-            yes_answers = sum(
-                1
-                for answer in inspection.answers
-                if answer is True
-            )
-
-            calculated_score = (
-                yes_answers / total_questions
-            ) * 100
-
-            return {
-                "message": (
-                    "Denetim puanı JSON cevaplarından "
-                    "hesaplandı."
-                ),
-                "inspection_id": inspection.id,
-                "score": calculated_score,
-                "total_questions": total_questions,
-                "yes_answers": yes_answers
-            }
-
-    raise HTTPException(
-        status_code=400,
-        detail=(
-            "Bu denetime ait cevap bulunamadı. "
-            "Puan hesaplanamaz."
+    try:
+        ai_report = await synthesize_inspection_data(
+            answers_text=answers_text,
+            inspector_notes="Notlar modülü henüz eklenmedi",
+            photo_analyses=photo_analyses_text,
+            google_reviews=reviews_text
         )
-    )
+    except Exception as e:
+        ai_report = f"Yapay zeka raporu oluşturulamadı: {str(e)}"
 
+
+    return {
+        "message": "Denetim başarıyla tamamlandı ve AI raporu oluşturuldu.",
+        "inspection_id": inspection_id,
+        "score": calculated_score,
+        "total_questions": total_questions,
+        "yes_answers": yes_answers,
+        "ai_report": ai_report
+    }   
 
 # ---------------------------------------------------------
 # GOOGLE YORUMLARI

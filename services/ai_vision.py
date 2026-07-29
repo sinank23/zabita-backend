@@ -33,7 +33,7 @@ async def analyze_image_with_ai(image_path: str) -> str:
         return f"Yapay zeka analizi sırasında bir hata oluştu: {str(e)}"
     
 
-async def synthesize_inspection_data(answers_text: str, inspector_notes: str, photo_analyses: str) -> str:
+async def synthesize_inspection_data(answers_text: str, inspector_notes: str, photo_analyses: str, google_reviews: str) -> str:
 
     """
 Denetim verilerini analiz edip genel durumu özetler.
@@ -54,6 +54,9 @@ Denetim verilerini analiz edip genel durumu özetler.
         3. FOTOĞRAF ANALİZ SONUÇLARI:
         {photo_analyses or "Fotoğraf yüklenmemiş."}
         
+        4. Google müşteri yorumları
+        {google_reviews or "Yorum bulunamadı."}
+        
         Lütfen bu üç veri kaynağını karşılaştır. 
         - Gözle görülür bir tutarsızlık var mı? (Örn: Zabıta temizliğe "Evet" demiş ama fotoğrafta çöp tespit edilmiş mi?)
         - İşletmenin genel durumu nasıl?
@@ -62,7 +65,7 @@ Denetim verilerini analiz edip genel durumu özetler.
         Cevabını madde imleri kullanarak, resmi bir rapor formatında ve anlaşılır bir Türkçe ile yaz. Puan verme, sadece durumu özetle.
         """
 
-        resonse = client.models.generate_content(
+        response = client.models.generate_content(
             model='gemini-3.5-flash',
             contents=[prompt]
         )
