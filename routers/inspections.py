@@ -108,6 +108,9 @@ def create_inspection(
         address=inspection.address,
         answers=inspection.answers,
 
+        # bu satırı da 30.07.2026 tarihinde not kısmı için ekliyorum
+        inspector_notes = inspection.inspector_notes,
+
         # Şimdilik kullanıcı doğrulaması olmadığı için boş bırakıyoruz.
         # inspector_id=1 kullanmak, veritabanında 1 ID'li kullanıcı
         # yoksa Foreign Key hatası çıkarabilir.
@@ -154,6 +157,40 @@ def get_inspections(
 
     return inspections
 
+@router.delete("/{inspection_id}")
+async def delete_inspection(
+    inspection_id: int,
+    db: Session = Depends(get_db)
+):
+
+    # öncelikle silinecek denetimi bulalım
+    inspection = (
+        db.query(models.Inspection)
+        .filter(models.Inspection.id == inspection_id)
+        .first()
+    )
+
+    if not inspection:
+        raise  HTTPException(
+            status_code=404,
+            detail="Silinmek istenen denetim bulunamadı."
+        )
+
+    try:
+        # denetime ait fotoğrafları veritabanından sil
+        db.query(models.InspectionPhoto).filter(models.InspectionPhoto.inspection_id == inspection_id).delete()
+
+        db.delete(inspection)
+        db.commit()   # kalıcılaştırma fonksiyonu
+
+        return {"message": f"{inspection_id} ID'li denetim ve verileri başarıyla silindi."}
+    except Exception as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Silme işlemi sırasında hata oluştu: {str(error)}"
+        )
+
 
 # ---------------------------------------------------------
 # DENETİM FOTOĞRAFLARI VE YAPAY ZEKA
@@ -165,7 +202,7 @@ def get_inspections(
 )
 async def upload_inspection_photo(
     inspection_id: int,
-    files: List[UploadFile] = File(...),  # artık çoklu fotoğraflar için liste bekleniyor.
+    file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
     # denetim var mı kontrolünü yaptık
@@ -181,23 +218,23 @@ async def upload_inspection_photo(
             detail="Denetim bulunamadı."
         )
 
-    uploaded_photos = []
+    if not file.filename:
+        raise HTTPException(
+            status_code=400,
+            detail="Fotoğraf seçilmedi."
+        )
 
+    file_extension = file.filename.split(".")[-1]
 
+    unique_id = uuid.uuid4().hex[:8]
+    new_filename = (
+        f"inspection_{inspection_id}_{unique_id}.{file_extension}"
+    )
 
-    # gelen her foto için döngğ açıyoruz
-    for file in files:
-        if not file.filename:
-            continue
-
-        file_extension = file.filename.split(".")[-1]
-
-        unique_id = uuid.uuid4().hex[:8]
-        new_filename = f"inspection_{inspection_id}_{unique_id}.{file_extension}"
-
-        file_path = os.path.join(UPLOAD_DIR, new_filename)
-
-
+    file_path = os.path.join(
+        UPLOAD_DIR,
+        new_filename
+    )
 
     # fotoyu sunucuya kaydetme işlemi
     try:
@@ -206,50 +243,52 @@ async def upload_inspection_photo(
     except Exception as error:
         raise HTTPException(
             status_code=500,
-            detail=f"Fotoğraf kaudedilemedi: {str(error)}"
+            detail=f"Fotoğraf kaydedilemedi: {str(error)}"
         )
 
     # yapay zeka analizini yapma işlemi
     try:
         ai_result = await analyze_inspection_photo(file_path)
     except Exception as error:
-        ai_result = f"Yapay zeka analizi başarısız oldu: {str(error)}"
+        ai_result = (
+            f"Yapay zeka analizi başarısız oldu: {str(error)}"
+        )
 
     # veritabanı modeli için kayıt
     new_photo = models.InspectionPhoto(
-        inspection_id = inspection_id,
+        inspection_id=inspection_id,
         photo_path=file_path,
         ai_analysis_result=ai_result
     )
-    db.add(new_photo)
-    uploaded_photos.append(new_photo)
 
-    # tüm fotoğrafları topluca vt kaydet
     try:
+        db.add(new_photo)
         db.commit()
-        for photo in uploaded_photos:
-            db.refresh(photo)
+        db.refresh(new_photo)
     except Exception as error:
         db.rollback()
+
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
         raise HTTPException(
             status_code=500,
-            detail=f"Fotoğraf bilgileri veritabanına kaydedilmedi: {str(error)}"
-
-
+            detail=(
+                "Fotoğraf bilgileri veritabanına kaydedilemedi: "
+                f"{str(error)}"
+            )
         )
 
     return {
-        "message": f"{len(uploaded_photos)} fotoğraf başarıyla yüklendi ve analiz edildi.",
-        "photos": [
-            {
-                "photo_id": p.id,
-                "photo_path": p.photo_path,
-                "ai_result": p.ai_analysis_result
-
-            } for p in uploaded_photos
-        ]
+        "message": (
+            "Fotoğraf başarıyla yüklendi ve analiz edildi."
+        ),
+        "photo": {
+            "photo_id": new_photo.id,
+            "photo_path": new_photo.photo_path,
+            "ai_result": new_photo.ai_analysis_result
+        }
     }
-
 @router.get(
     "/{inspection_id}/photos/",
     response_model=List[schemas.PhotoResponse]
@@ -283,7 +322,7 @@ def get_inspection_photos(
 
 
 # ---------------------------------------------------------
-# DENETİM PUANI HESAPLAMA yapay zeka entegreli
+# DENETİM tamamlama ve çapraz yapay zeka modeli güncelleme: 30.07.2026
 # ---------------------------------------------------------
 
 @router.post("/{inspection_id}/complete/")
@@ -307,18 +346,10 @@ async def complete_inspection(
         )
 
 
-    # form cevaplarını tutup puan hesaplama işlemi
     answers_text = str(inspection.answers) if inspection.answers else "Cevap yok."
-    total_questions = 0
-    yes_answers = 0
-    calculated_score = 0.0
 
-    if inspection.answers and isinstance(inspection.answers, list):
-        total_questions = len(inspection.answers)
-        if total_questions > 0:
-            yes_answers = sum(1 for answer in inspection.answers if answer is True)
-            calculated_score = (yes_answers / total_questions) * 100
 
+    
     # denetim fotoğraflarının analizlerini alma işlemi
     photos = (
         db.query(models.InspectionPhoto)
@@ -348,7 +379,7 @@ async def complete_inspection(
     try:
         ai_report = await synthesize_inspection_data(
             answers_text=answers_text,
-            inspector_notes="Notlar modülü henüz eklenmedi",
+            inspector_notes=inspection.inspector_notes if getattr(inspection, "inspector_notes", None) else "Zabıta personeli ek bir not girmedi", # 3.07.2026 tarihinde güncelleyerek ekledik
             photo_analyses=photo_analyses_text,
             google_reviews=reviews_text
         )
@@ -359,9 +390,7 @@ async def complete_inspection(
     return {
         "message": "Denetim başarıyla tamamlandı ve AI raporu oluşturuldu.",
         "inspection_id": inspection_id,
-        "score": calculated_score,
-        "total_questions": total_questions,
-        "yes_answers": yes_answers,
+        
         "ai_report": ai_report
     }   
 

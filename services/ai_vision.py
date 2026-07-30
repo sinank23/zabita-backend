@@ -34,35 +34,28 @@ async def analyze_image_with_ai(image_path: str) -> str:
     
 
 async def synthesize_inspection_data(answers_text: str, inspector_notes: str, photo_analyses: str, google_reviews: str) -> str:
-
     """
-Denetim verilerini analiz edip genel durumu özetler.
-"""
-
+    Denetim verilerini analiz edip genel durumu özetler.
+    """
     try:
+        # GÜNCELLENDİ: Puanlama kaldırıldı, başmüfettiş rolüyle çapraz analiz (cross-check) promptu eklendi.
         prompt = f"""
-        Sen uzman bir belediye denetim asistanısın. Görevin, sahadaki zabıta memurunun girdiği verileri ve görsel analizleri inceleyerek kısa, net ve resmi bir özet rapor oluşturmaktır.
+        Sen uzman bir denetim başmüfettişisin. Görevin, bir işletme hakkında farklı kaynaklardan gelen verileri analiz etmek ve çapraz doğrulama (cross-check) yapmaktır.
         
-        Aşağıda bir işletmenin denetim verileri bulunmaktadır:
+        KESİN KURAL: Hiçbir şekilde 100 üzerinden veya başka bir ölçekte sayısal puanlama YAPMA. Sadece niteliksel bir durum raporu yaz.
+
+        Eldeki Veriler:
+        1. Zabıtanın Anket Cevapları: {answers_text}
+        2. Zabıtanın Sahadaki Gözlem Notları: {inspector_notes}
+        3. Denetim Fotoğraflarının Yapay Zeka Analizi: {photo_analyses}
+        4. İşletmenin Google Haritalar Yorumları: {google_reviews}
+
+        Lütfen şu adımları izleyerek profesyonel bir rapor oluştur:
+        - Tutarlılık Kontrolü: Zabıtanın cevapları, gözlemleri ve fotoğraflar birbiriyle uyuşuyor mu? (Örneğin; zabıta hijyen 'Evet' demiş ama fotoğraflarda kirlilik varsa veya yorumlarda sürekli şikayet varsa bu çelişkiyi yakala).
+        - Müşteri Gözü: Google yorumlarındaki kronik şikayetler, denetim bulgularıyla örtüşüyor mu?
+        - Sonuç ve Öneri: Mevcut tabloya göre işletmenin genel durumunu özetle ve tespit edilen tutarsızlıkları/eksikleri net bir şekilde belirt.
         
-        1. FORM CEVAPLARI:
-        {answers_text}
-        
-        2. ZABITA MEMURUNUN NOTLARI:
-        {inspector_notes or "Not girilmemiş."}
-        
-        3. FOTOĞRAF ANALİZ SONUÇLARI:
-        {photo_analyses or "Fotoğraf yüklenmemiş."}
-        
-        4. Google müşteri yorumları
-        {google_reviews or "Yorum bulunamadı."}
-        
-        Lütfen bu üç veri kaynağını karşılaştır. 
-        - Gözle görülür bir tutarsızlık var mı? (Örn: Zabıta temizliğe "Evet" demiş ama fotoğrafta çöp tespit edilmiş mi?)
-        - İşletmenin genel durumu nasıl?
-        - Acil düzeltilmesi gereken kritik ihlaller (ruhsat, yangın tüpü, hijyen) var mı?
-        
-        Cevabını madde imleri kullanarak, resmi bir rapor formatında ve anlaşılır bir Türkçe ile yaz. Puan verme, sadece durumu özetle.
+        Raporu kurumsal, resmi bir dille ve doğrudan konuya girerek yaz.
         """
 
         response = client.models.generate_content(
@@ -73,4 +66,4 @@ Denetim verilerini analiz edip genel durumu özetler.
         return response.text
     
     except Exception as e:
-        return f"Rapor oluşturulurken hata meydana geldi"
+        return f"Rapor oluşturulurken hata meydana geldi: {str(e)}"

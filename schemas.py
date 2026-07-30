@@ -79,6 +79,9 @@ class InspectionCreate(BaseModel):
     address: str
     answers: list[bool]
 
+    #30.07.2026 tarihinde eklenen not
+    inspector_notes: Optional[str] = None
+
 class InspectionResponse(BaseModel):
     id: int
     businessName: str

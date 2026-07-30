@@ -122,6 +122,9 @@ class Inspection(Base):
     # Checkbox cevaplarını JSON olarak tutuyoruz
     answers = Column(JSON, nullable=True)
 
+    # memurun not yazmaası için (30.07.2026)
+    inspector_notes = Column(String, nullable=True)
+
     inspector_id = Column(
         Integer,
         ForeignKey("users.id"),

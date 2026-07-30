@@ -32,13 +32,13 @@ if not os.path.exists(UPLOAD_DIR):
 
 
 # ---------------------------------------------------------
-# FOTOĞRAFI DENETİME KAYDETME
+# FOTOĞRAFLARI DENETİME KAYDETME
 # ---------------------------------------------------------
 
-@router.post("/upload/")
-def upload_photo(
+@router.post("/upload/{inspection_id}")
+def upload_photos(
     inspection_id: int,
-    file: UploadFile = File(...),
+    files: list[UploadFile] = File(...),
     db: Session = Depends(get_db)
 ):
     inspection = (
@@ -53,72 +53,86 @@ def upload_photo(
             detail="Denetim bulunamadı."
         )
 
-    if not file.filename:
-        raise HTTPException(
-            status_code=400,
-            detail="Fotoğraf dosyasının adı bulunamadı."
-        )
-
-    file_extension = file.filename.split(".")[-1]
-
-    unique_filename = (
-        f"{uuid4()}.{file_extension}"
-    )
-
-    file_path = os.path.join(
-        UPLOAD_DIR,
-        unique_filename
-    )
+    uploaded_photos = []
+    saved_file_paths = []
 
     try:
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(
-                file.file,
-                buffer
+        for file in files:
+            if not file.filename:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Fotoğraf dosyasının adı bulunamadı."
+                )
+
+            file_extension = file.filename.rsplit(".", 1)[-1]
+
+            unique_filename = (
+                f"{uuid4()}.{file_extension}"
             )
 
-    except Exception as error:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Fotoğraf kaydedilemedi: {str(error)}"
-        )
+            file_path = os.path.join(
+                UPLOAD_DIR,
+                unique_filename
+            )
 
-    new_photo = models.InspectionPhoto(
-        inspection_id=inspection_id,
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(
+                    file.file,
+                    buffer
+                )
 
-        # Modelde photo_url değil photo_path var
-        photo_path=file_path,
+            saved_file_paths.append(file_path)
 
-        ai_analysis_result=None
-    )
+            new_photo = models.InspectionPhoto(
+                inspection_id=inspection_id,
 
-    try:
-        db.add(new_photo)
+                # Modelde photo_url değil photo_path var
+                photo_path=file_path,
+
+                ai_analysis_result=None
+            )
+
+            db.add(new_photo)
+            db.flush()
+
+            uploaded_photos.append({
+                "photo_id": new_photo.id,
+                "photo_path": new_photo.photo_path
+            })
+
         db.commit()
-        db.refresh(new_photo)
+
+    except HTTPException:
+        db.rollback()
+
+        for file_path in saved_file_paths:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+        raise
 
     except Exception as error:
         db.rollback()
 
-        # Veritabanına yazılamadıysa fiziksel dosyayı da silelim
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        # Veritabanına yazılamadıysa fiziksel dosyaları da silelim
+        for file_path in saved_file_paths:
+            if os.path.exists(file_path):
+                os.remove(file_path)
 
         raise HTTPException(
             status_code=500,
             detail=(
-                "Fotoğraf veritabanına kaydedilemedi: "
+                "Fotoğraflar kaydedilemedi: "
                 f"{str(error)}"
             )
         )
 
     return {
         "message": (
-            "Fotoğraf başarıyla yüklendi "
+            "Fotoğraflar başarıyla yüklendi "
             "ve veritabanına kaydedildi."
         ),
-        "photo_id": new_photo.id,
-        "photo_path": new_photo.photo_path
+        "photos": uploaded_photos
     }
 
 
@@ -142,7 +156,7 @@ async def upload_and_analyze_photo(
             detail="Fotoğraf dosyasının adı bulunamadı."
         )
 
-    file_extension = file.filename.split(".")[-1]
+    file_extension = file.filename.rsplit(".", 1)[-1]
 
     unique_filename = (
         f"{uuid.uuid4()}.{file_extension}"
