@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # API anahtarını değişkene alıyoruz
+# .env dosyasındaki değişkenin adını yazıyoruz
 GOOGLE_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
-
 
 # asenkron yapmamızın sebebi google den cevap beklerken sunucu kitlenmez.
 
@@ -16,8 +16,10 @@ async def fetch_google_reviews(place_id: str) -> list:        #Bu kimlik Google 
     Verilen Google Place ID'sine ait yorumları Google Places API'den çeker.
     """
     if not GOOGLE_API_KEY:
-        print("HATA: Google API Key bulunamadı!")
+        print("HATA: Google API Key bulunamadı!") 
         return []
+
+    print("BİZİM GÖNDERDİĞİMİZ ANAHTAR:", GOOGLE_API_KEY)
 
     # Google Places API uç noktası
     url = f"https://maps.googleapis.com/maps/api/place/details/json"
@@ -39,6 +41,7 @@ async def fetch_google_reviews(place_id: str) -> list:        #Bu kimlik Google 
             response.raise_for_status() # Hata varsa fırlatır
             
             data = response.json()
+            print("GOOGLE'DAN GELEN CEVAP:", data)
             
             # Gelen veriyi (ayrıştırıyoruz)
             if "result" in data and "reviews" in data["result"]:

@@ -137,6 +137,10 @@ class Inspection(Base):
         nullable=True
     )
 
+    # 31.07.2026 eklendi.
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+
     inspector = relationship(
         "User",
         back_populates="inspections"

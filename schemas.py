@@ -82,6 +82,11 @@ class InspectionCreate(BaseModel):
     #30.07.2026 tarihinde eklenen not
     inspector_notes: Optional[str] = None
 
+    # 31.07.2026
+    latitude: float | None = None
+    longitude: float | None = None
+
+
 class InspectionResponse(BaseModel):
     id: int
     businessName: str
@@ -97,3 +102,16 @@ class PhotoResponse(BaseModel):
     ai_analysis_result: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+# 31.07.2026
+# google yorumlarını get etme işlemi uygulamaya
+class ReviewResponse(BaseModel):
+    id: int
+    author_name: str
+    rating: float
+    text: str | None = None
+    publish_date: str | None = None
+
+    class Config:
+        from_attributes = True
