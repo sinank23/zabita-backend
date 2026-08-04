@@ -11,3 +11,5 @@ __pycache__/
 # Sanal ortam (EÄŸer venv kullanÄ±yorsan)
 venv/
 env/
+# Denetim sırasında yüklenen fotoğraflar
+uploads/
