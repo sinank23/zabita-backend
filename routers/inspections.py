@@ -323,6 +323,7 @@ async def complete_inspection(inspection_id: int, db: Session = Depends(get_db))
             reviews_text = "\n".join(reviews_list)
 
     # google geminiyle fotoğraf analizi
+        # Google Gemini ile nihai denetim raporu oluşturma
     try:
         ai_report = await synthesize_inspection_data(
             answers_text=answers_text,
@@ -334,9 +335,17 @@ async def complete_inspection(inspection_id: int, db: Session = Depends(get_db))
             photo_analyses=photo_analyses_text,
             google_reviews=reviews_text,
         )
-    except Exception as e:
-        ai_report = f"Yapay zeka raporu oluşturulamadı: {str(e)}"
 
+    except Exception as error:
+        inspection.status = "AI Analizi Bekliyor"
+        db.commit()
+
+        raise HTTPException(
+            status_code=503,
+            detail=f"Yapay zeka servisine şu anda ulaşılamıyor: {str(error)}"
+        )
+
+    # AI raporu başarıyla üretildiyse veritabanına kaydet
     try:
         inspection.ai_summary = ai_report
         inspection.status = "Tamamlandı"
@@ -352,14 +361,11 @@ async def complete_inspection(inspection_id: int, db: Session = Depends(get_db))
             detail=f"Yapay zeka raporu veritabanına kaydedilemedi: {str(error)}"
         )
 
-
-
     return {
         "message": "Denetim başarıyla tamamlandı ve AI raporu oluşturuldu.",
         "inspection_id": inspection_id,
         "ai_report": ai_report,
     }
-
 # ---------------------------------------------------------
 # GOOGLE YORUMLARI
 # ---------------------------------------------------------

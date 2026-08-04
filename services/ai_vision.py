@@ -66,4 +66,4 @@ async def synthesize_inspection_data(answers_text: str, inspector_notes: str, ph
         return response.text
     
     except Exception as e:
-        return f"Rapor oluşturulurken hata meydana geldi: {str(e)}"
+        raise RuntimeError(f"Yapay zeka raporu oluşturulamadı: {str(e)}") from e
