@@ -81,6 +81,7 @@ class InspectionCreate(BaseModel):
 
     #30.07.2026 tarihinde eklenen not
     inspector_notes: Optional[str] = None
+    business_id: int | None = None
 
     # 31.07.2026
     latitude: float | None = None

@@ -82,7 +82,7 @@ def get_criteria_by_category(
 
 @router.post("/", response_model=schemas.InspectionResponse)
 def create_inspection(
-    inspection: schemas.InspectionCreate, db: Session = Depends(get_db)
+    inspection: schemas.InspectionCreate, db: Session = Depends(get_db),
 ):
   print("------- İSTEK BAŞARIYLA BACKEND'E ULAŞTI -------")
   print(f"Gelen İşletme: {inspection.businessName}")
@@ -99,11 +99,13 @@ def create_inspection(
       # inspector_id=1 kullanmak, veritabanında 1 ID'li kullanıcı
       # yoksa Foreign Key hatası çıkarabilir.
       inspector_id=None,
-      business_id=None,
+      business_id=inspection.business_id,
 
       latitude=inspection.latitude,
       longitude=inspection.longitude,
   )
+
+#s
 
   try:
     db.add(new_inspection)

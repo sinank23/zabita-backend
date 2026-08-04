@@ -60,7 +60,7 @@ def create_business(
 @router.get("/", response_model=List[schemas.BusinessResponse])
 def get_businesses(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user) 
+     
 ):
     # Veritabanına gidip "Bana sistemdeki tüm işletmeleri getir" diyoruz.
     businesses = db.query(models.Business).all()
