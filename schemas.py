@@ -86,14 +86,26 @@ class InspectionCreate(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
 
-
+# güncelleme 04.08.2026
 class InspectionResponse(BaseModel):
     id: int
     businessName: str
-    address: str
+    address: str | None = None
     answers: list[bool]
-    
+
+    inspector_notes: str | None = None
+    inspector_id: int | None = None
+    business_id: int | None = None
+
+    status: str | None = None
+    ai_summary: str | None = None
+    inspection_date: datetime | None = None
+
+    latitude: float | None = None
+    longitude: float | None = None
+
     model_config = {"from_attributes": True}
+
 
     
 class PhotoResponse(BaseModel):

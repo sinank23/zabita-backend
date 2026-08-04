@@ -275,73 +275,90 @@ def get_inspection_photos(inspection_id: int, db: Session = Depends(get_db)):
 # ---------------------------------------------------------
 
 
+
 @router.post("/{inspection_id}/complete/")
 async def complete_inspection(inspection_id: int, db: Session = Depends(get_db)):
 
-  # denetimi bul getir
-  inspection = (
-      db.query(models.Inspection)
-      .filter(models.Inspection.id == inspection_id)
-      .first()
-  )
+    # denetimi bul getir
+    inspection = (
+        db.query(models.Inspection)
+        .filter(models.Inspection.id == inspection_id)
+        .first()
+    )
 
-  if not inspection:
-    raise HTTPException(status_code=404, detail="Denetim bulunamadı")
+    if not inspection:
+        raise HTTPException(status_code=404, detail="Denetim bulunamadı")
 
-  answers_text = (
-      str(inspection.answers) if inspection.answers else "Cevap yok."
-  )
+    answers_text = (
+        str(inspection.answers) if inspection.answers else "Cevap yok."
+    )
 
-  # denetim fotoğraflarının analizlerini alma işlemi
-  photos = (
-      db.query(models.InspectionPhoto)
-      .filter(models.InspectionPhoto.inspection_id == inspection_id)
-      .all()
-  )
-  photo_analyses_list = [
-      p.ai_analysis_result for p in photos if p.ai_analysis_result
-  ]
-  photo_analyses_text = (
-      "\n".join(photo_analyses_list)
-      if photo_analyses_list
-      else "Fotoğraf yüklenmemiş"
-  )
-
-  # google yorumlarını alalım ve toplayalım
-
-  reviews_text = "Yorum bulunamadı."
-  if inspection.business_id:
-    reviews = (
-        db.query(models.GoogleReview)
-        .filter(models.GoogleReview.business_id == inspection.business_id)
+    # denetim fotoğraflarının analizlerini alma işlemi
+    photos = (
+        db.query(models.InspectionPhoto)
+        .filter(models.InspectionPhoto.inspection_id == inspection_id)
         .all()
     )
-    reviews_list = [f"- {r.text}" for r in reviews if r.text]
-    if reviews_list:
-      reviews_text = "\n".join(reviews_list)
-
-  # google geminiyle fotoğraf analizi
-
-  try:
-    ai_report = await synthesize_inspection_data(
-        answers_text=answers_text,
-        inspector_notes=(
-            inspection.inspector_notes
-            if getattr(inspection, "inspector_notes", None)
-            else "Zabıta personeli ek bir not girmedi"
-        ),  # 3.07.2026 tarihinde güncelleyerek ekledik
-        photo_analyses=photo_analyses_text,
-        google_reviews=reviews_text,
+    
+    photo_analyses_list = [
+        p.ai_analysis_result for p in photos if p.ai_analysis_result
+    ]
+    
+    photo_analyses_text = (
+        "\n".join(photo_analyses_list)
+        if photo_analyses_list
+        else "Fotoğraf yüklenmemiş"
     )
-  except Exception as e:
-    ai_report = f"Yapay zeka raporu oluşturulamadı: {str(e)}"
 
-  return {
-      "message": "Denetim başarıyla tamamlandı ve AI raporu oluşturuldu.",
-      "inspection_id": inspection_id,
-      "ai_report": ai_report,
-  }
+    # google yorumlarını alalım ve toplayalım
+    reviews_text = "Yorum bulunamadı."
+    if inspection.business_id:
+        reviews = (
+            db.query(models.GoogleReview)
+            .filter(models.GoogleReview.business_id == inspection.business_id)
+            .all()
+        )
+        reviews_list = [f"- {r.text}" for r in reviews if r.text]
+        if reviews_list:
+            reviews_text = "\n".join(reviews_list)
 
+    # google geminiyle fotoğraf analizi
+    try:
+        ai_report = await synthesize_inspection_data(
+            answers_text=answers_text,
+            inspector_notes=(
+                inspection.inspector_notes
+                if getattr(inspection, "inspector_notes", None)
+                else "Zabıta personeli ek bir not girmedi"
+            ),
+            photo_analyses=photo_analyses_text,
+            google_reviews=reviews_text,
+        )
+    except Exception as e:
+        ai_report = f"Yapay zeka raporu oluşturulamadı: {str(e)}"
+
+    try:
+        inspection.ai_summary = ai_report
+        inspection.status = "Tamamlandı"
+
+        db.commit()
+        db.refresh(inspection)
+
+    except Exception as error:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Yapay zeka raporu veritabanına kaydedilemedi: {str(error)}"
+        )
+
+
+
+    return {
+        "message": "Denetim başarıyla tamamlandı ve AI raporu oluşturuldu.",
+        "inspection_id": inspection_id,
+        "ai_report": ai_report,
+    }
 
 # ---------------------------------------------------------
 # GOOGLE YORUMLARI

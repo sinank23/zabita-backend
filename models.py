@@ -137,6 +137,10 @@ class Inspection(Base):
         nullable=True
     )
 
+    status = Column(String(50), default="Bekliyor", nullable=True)
+    ai_summary = Column(Text, nullable=True)
+    inspection_date = Column(DateTime, default=datetime.utcnow, nullable=True)
+
     # 31.07.2026 eklendi.
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
@@ -165,6 +169,10 @@ class Inspection(Base):
         back_populates="inspection",
         cascade="all, delete-orphan"
     )
+
+
+    
+
 
 
 # 6. Denetim Fotoğrafları Tablosu
