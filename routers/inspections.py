@@ -100,6 +100,9 @@ def create_inspection(
       # yoksa Foreign Key hatası çıkarabilir.
       inspector_id=None,
       business_id=None,
+
+      latitude=inspection.latitude,
+      longitude=inspection.longitude,
   )
 
   try:
