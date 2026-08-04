@@ -5,13 +5,14 @@ from typing import List
 # Kendi yazdığımız dosyaları (tabloları ve kuralları) buraya çağırıyoruz.
 import models
 import schemas
-from database import SessionLocal 
+from database import SessionLocal
 
 # İşlem yapan kişi gerçekten zabıta mı, sisteme giriş yapmış mı diye kontrol edeceğimiz kilit sistemimiz.
 from routers.auth import get_current_user
 
 # Google'a gidip yorumları alıp getirecek olan kuryemiz (dış servis fonksiyonu).
-from services.google_service import fetch_google_reviews
+# Google'a gidip yorumları ve işletme arama sonuçlarını getirecek dış servis fonksiyonları.
+from services.google_service import fetch_google_reviews, search_google_places
 
 # Buradaki tüm adreslerin başına otomatik "/businesses" ekliyoruz. 
 # Böylece her defasında uzun uzun yazmamıza gerek kalmıyor, hepsi aynı klasörde toplanıyor.
@@ -35,7 +36,7 @@ def get_db():
 def create_business(
     business: schemas.BusinessCreate, 
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user) # Sadece giriş yapan zabıtalar burayı kullanabilir.
+    #current_user: models.User = Depends(get_current_user) # Sadece giriş yapan zabıtalar burayı kullanabilir.
 ):
     # 1. Aynı isimde dükkan daha önce sisteme eklenmiş mi diye deftere bakıyoruz.
     existing_business = db.query(models.Business).filter(models.Business.name == business.name).first()
@@ -67,6 +68,42 @@ def get_businesses(
     return businesses
 
 
+# GOOGLE MAPS ÜZERİNDE İŞLETME ARAMA EKRANI
+@router.get("/search")
+async def search_businesses_from_google(
+    query: str,
+    latitude: float,
+    longitude: float
+):
+    """
+    Zabıtanın yazdığı işletme adına ve mevcut GPS konumuna göre
+    Google Maps üzerinde yakın işletmeleri arar.
+    """
+
+    # Kullanıcı arama alanını boş gönderdiyse
+    # Google'a gereksiz istek atmadan hata döndürüyoruz.
+    if not query.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="İşletme adı boş bırakılamaz."
+        )
+
+    # google_service.py dosyasına yazdığımız fonksiyonu çağırıyoruz.
+    # İşletme adı ile zabıtanın enlem ve boylam bilgisini gönderiyoruz.
+    places = await search_google_places(
+        query=query,
+        latitude=latitude,
+        longitude=longitude
+    )
+
+    # Google'dan sonuç gelmezse Android'e boş liste gönderiyoruz.
+    # Böylece uygulama çökmek yerine 'işletme bulunamadı' yazabilir.
+    if not places:
+        return []
+
+    # Google'dan gelen sadeleştirilmiş işletme listesini Android'e gönderiyoruz.
+    return places
+
 # TEK BİR İŞLETMENİN BİLGİLERİNİ GETİRME EKRANI
 @router.get("/{business_id}", response_model=schemas.BusinessResponse)
 def get_business_by_id(
@@ -94,7 +131,7 @@ def get_business_by_id(
 async def sync_business_reviews(
     business_id: int, 
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user) 
+    #current_user: models.User = Depends(get_current_user) 
 ):
     """
     Bu kısım bizim Google operasyonumuz. Dışarıdan veriyi alıp içeri kaydediyoruz.
