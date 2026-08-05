@@ -242,7 +242,7 @@ class GoogleReview(Base):
 
     author_name = Column(String(150), nullable=True)
     rating = Column(Float, nullable=True)
-    text = Column(String(1000), nullable=True)
+    text = Column(Text, nullable=True)
     publish_date = Column(String(50), nullable=True)
 
     business = relationship(

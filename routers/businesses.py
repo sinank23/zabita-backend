@@ -39,11 +39,25 @@ def create_business(
     #current_user: models.User = Depends(get_current_user) # Sadece giriş yapan zabıtalar burayı kullanabilir.
 ):
     # 1. Aynı isimde dükkan daha önce sisteme eklenmiş mi diye deftere bakıyoruz.
-    existing_business = db.query(models.Business).filter(models.Business.name == business.name).first()
-    if existing_business:
-        # Varsa hata verip "Bu dükkan zaten var" diyoruz, işlemi durduruyoruz.
-        raise HTTPException(status_code=400, detail="Bu isimde bir işletme zaten kayıtlı.")
+    # Google Place ID gönderilmişse önce bu benzersiz kimliğe göre işletmeyi arıyoruz.
+    existing_business = None
 
+    if business.google_place_id:
+        existing_business = db.query(models.Business).filter(
+            models.Business.google_place_id == business.google_place_id
+        ).first()
+
+    # Place ID ile bulunamazsa aynı isimde kayıt olup olmadığını kontrol ediyoruz.
+    if not existing_business:
+        existing_business = db.query(models.Business).filter(
+            models.Business.name == business.name
+        ).first()
+
+    # İşletme zaten kayıtlıysa hata vermek yerine mevcut kaydı geri döndürüyoruz.
+    # Böylece aynı işletmede daha sonra tekrar denetim yapılabilir.
+    if existing_business:
+        return existing_business
+        
     # 2. Dışarıdan gelen temiz bilgileri alıp, bizim veritabanının anlayacağı şekle sokuyoruz.
     new_business = models.Business(**business.model_dump())
     
@@ -61,7 +75,6 @@ def create_business(
 @router.get("/", response_model=List[schemas.BusinessResponse])
 def get_businesses(
     db: Session = Depends(get_db),
-     
 ):
     # Veritabanına gidip "Bana sistemdeki tüm işletmeleri getir" diyoruz.
     businesses = db.query(models.Business).all()
@@ -103,6 +116,7 @@ async def search_businesses_from_google(
 
     # Google'dan gelen sadeleştirilmiş işletme listesini Android'e gönderiyoruz.
     return places
+
 
 # TEK BİR İŞLETMENİN BİLGİLERİNİ GETİRME EKRANI
 @router.get("/{business_id}", response_model=schemas.BusinessResponse)
@@ -157,13 +171,27 @@ async def sync_business_reviews(
     added_count = 0
     # 3. Adım: Google'dan gelen yorum paketini açıp, teker teker kendi tablomuza diziyoruz.
     for rev_data in fetched_reviews:
+        #aynı yorum daha önce var mı diye bakalım
+        existing_review = db.query(models.GoogleReview).filter(
+            models.GoogleReview.business_id == business_id,
+            models.GoogleReview.author_name == rev_data["author_name"],
+            models.GoogleReview.rating == rev_data["rating"],
+            models.GoogleReview.text == rev_data["text"],
+            models.GoogleReview.publish_date == str(rev_data["publish_date"])
+        ).first()
+
+        # yorum zaten varsa eklemeden sonraki yoruma geçiyoruz.
+        if existing_review:
+            continue
+
         new_review = models.GoogleReview(
-            business_id=business.id, # Bu yorum hangi dükkana ait? Fişini buraya kesiyoruz.
+            business_id=business_id,
             author_name=rev_data["author_name"],
             rating=rev_data["rating"],
             text=rev_data["text"],
-            publish_date=str(rev_data["publish_date"]) # Tarih formatını bizim tabloya uysun diye metne çeviriyoruz.
+            publish_date=str(rev_data["publish_date"])
         )
+
         # Yorumu şimdilik alışveriş sepetine atıyoruz, henüz kasadan geçirmedik.
         db.add(new_review)
         added_count += 1
