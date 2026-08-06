@@ -19,7 +19,7 @@ async def fetch_google_reviews(place_id: str) -> list:        #Bu kimlik Google 
         print("HATA: Google API Key bulunamadı!") 
         return []
 
-    print("BİZİM GÖNDERDİĞİMİZ ANAHTAR:", GOOGLE_API_KEY)
+    
 
     # Google Places API uç noktası
     url = f"https://maps.googleapis.com/maps/api/place/details/json"
