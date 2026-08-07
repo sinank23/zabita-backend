@@ -202,3 +202,13 @@ async def sync_business_reviews(
 
     # İşlem bitince ekrana "Şu kadar yorum başarıyla kaydedildi" yazdırıyoruz.
     return {"message": f"{added_count} adet yorum başarıyla eşitlendi."}
+
+
+#07.08.2026
+#Kategorileri listeleme endpointi ekleyelim
+@router.get("/categories/all", response_model=List[schemas.CategoryResponse])
+def get_business_categories(
+    db: Session = Depends(get_db),
+): 
+    categories = db.query(models.BusinessCategory).all()
+    return categories

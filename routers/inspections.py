@@ -64,15 +64,14 @@ def create_criteria(
 def get_criteria_by_category(
     category_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
 ):
-  criteria = (
-      db.query(models.InspectionCriterion)
-      .filter(models.InspectionCriterion.category_id == category_id)
-      .all()
-  )
+    criteria = (
+        db.query(models.InspectionCriterion)
+        .filter(models.InspectionCriterion.category_id == category_id)
+        .all()
+    )
 
-  return criteria
+    return criteria
 
 
 # ---------------------------------------------------------
