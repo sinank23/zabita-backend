@@ -74,6 +74,24 @@ def get_criteria_by_category(
     return criteria
 
 
+#10.08.2026
+#denetim sorularını veritabanından dinamik olarak çekmek için endpoint
+@router.get(
+    "/criteria/common/all",
+    response_model=List[schemas.CriterionResponse],
+)
+def get_common_inspection_criteria(
+  db: Session = Depends(get_db),
+):
+  criteria = (
+    db.query(models.InspectionCriterion)
+    .filter(models.InspectionCriterion.category_id.is_(None))
+    .all()
+  )
+
+  return criteria
+
+
 # ---------------------------------------------------------
 # DENETİM KAYDETME
 # ---------------------------------------------------------
@@ -81,61 +99,104 @@ def get_criteria_by_category(
 
 @router.post("/", response_model=schemas.InspectionResponse)
 def create_inspection(
-    inspection: schemas.InspectionCreate, db: Session = Depends(get_db),
+    inspection: schemas.InspectionCreate, 
+    db: Session = Depends(get_db),
 ):
-  print("------- İSTEK BAŞARIYLA BACKEND'E ULAŞTI -------")
-  print(f"Gelen İşletme: {inspection.businessName}")
-  print(f"Gelen Adres: {inspection.address}")
-  print(f"Gelen Cevaplar: {inspection.answers}")
+    print("------- İSTEK BAŞARIYLA BACKEND'E ULAŞTI -------")
+    print(f"Gelen İşletme: {inspection.businessName}")
+    print(f"Gelen Adres: {inspection.address}")
+    print(f"Gelen Cevaplar: {inspection.answers}")
 
-  new_inspection = models.Inspection(
-      businessName=inspection.businessName,
-      address=inspection.address,
-      answers=inspection.answers,
-      # bu satırı da 30.07.2026 tarihinde not kısmı için ekliyorum
-      inspector_notes=inspection.inspector_notes,
-      # Şimdilik kullanıcı doğrulaması olmadığı için boş bırakıyoruz.
-      # inspector_id=1 kullanmak, veritabanında 1 ID'li kullanıcı
-      # yoksa Foreign Key hatası çıkarabilir.
-      inspector_id=None,
-      business_id=inspection.business_id,
-
-      latitude=inspection.latitude,
-      longitude=inspection.longitude,
-  )
-
-#s
-
-  try:
-    db.add(new_inspection)
-    db.commit()
-    db.refresh(new_inspection)
-
-    print(
-        f"Denetim başarıyla kaydedildi. " f"Denetim ID: {new_inspection.id}"
+    new_inspection = models.Inspection(
+        businessName=inspection.businessName,
+        address=inspection.address,
+        answers=inspection.answers,
+        # bu satırı da 30.07.2026 tarihinde not kısmı için ekliyorum
+        inspector_notes=inspection.inspector_notes,
+        # Şimdilik kullanıcı doğrulaması olmadığı için boş bırakıyoruz.
+        # inspector_id=1 kullanmak, veritabanında 1 ID'li kullanıcı
+        # yoksa Foreign Key hatası çıkarabilir.
+        inspector_id=None,
+        business_id=inspection.business_id,
+        latitude=inspection.latitude,
+        longitude=inspection.longitude,
     )
 
-    return new_inspection
+    try:
+        db.add(new_inspection)
+        db.commit()
+        db.refresh(new_inspection)
 
-  except Exception as error:
-    db.rollback()
+        # Bu for döngüsünün içindeki işlemler girintili olmalıydı
+        for answer_record in inspection.answer_records:
+            new_answer = models.InspectionAnswer(
+                inspection_id=new_inspection.id,
+                criterion_id=answer_record.criterion_id,
+                is_yes=answer_record.is_yes,
+            )
+            db.add(new_answer)
 
-    print("DENETİM KAYDETME HATASI:")
-    print(str(error))
+        # For döngüsü bittikten sonra hepsini veritabanına kaydetmek için döngüyle aynı hizada olmalı
+        db.commit()
 
-    raise HTTPException(
-        status_code=500, detail=f"Denetim kaydedilemedi: {str(error)}"
-    )
+        print(f"Denetim başarıyla kaydedildi. Denetim ID: {new_inspection.id}")
+
+        return new_inspection
+
+    except Exception as error:
+        db.rollback()
+
+        print("DENETİM KAYDETME HATASI:")
+        print(str(error))
+
+        raise HTTPException(
+            status_code=500, detail=f"Denetim kaydedilemedi: {str(error)}"
+        )
 
 
 @router.get("/", response_model=List[schemas.InspectionResponse])
 def get_inspections(db: Session = Depends(get_db)):
-  inspections = (
-      db.query(models.Inspection).order_by(models.Inspection.id.desc()).all()
-  )
+    inspections = (
+        db.query(models.Inspection).order_by(models.Inspection.id.desc()).all()
+    )
 
-  return inspections
+    return inspections
 
+#10.08.2026 eklendi
+@router.get(
+    "/{inspection_id}/answers",
+    response_model=List[schemas.InspectionAnswerResponse],
+)
+def get_inspection_answers(
+    inspection_id: int,
+    db: Session = Depends(get_db),
+):
+    inspection = (
+        db.query(models.Inspection)
+        .filter(models.Inspection.id == inspection_id)
+        .first()
+    )
+
+    if not inspection:
+        raise HTTPException(
+            status_code=404,
+            detail="Denetim bulunamadı."
+        )
+
+    answer_records = (
+        db.query(models.InspectionAnswer)
+        .filter(models.InspectionAnswer.inspection_id == inspection_id)
+        .all()
+    )
+
+    return [
+        schemas.InspectionAnswerResponse(
+            criterion_id=answer.criterion_id,
+            question_text=answer.criterion.question_text,
+            is_yes=answer.is_yes,
+        )
+        for answer in answer_records
+    ]
 
 @router.delete("/{inspection_id}")
 async def delete_inspection(inspection_id: int, db: Session = Depends(get_db)):
@@ -288,7 +349,7 @@ async def complete_inspection(inspection_id: int, db: Session = Depends(get_db))
         db.query(models.Inspection)
         .filter(models.Inspection.id == inspection_id)
         .first()
-    )
+    ) 
 
     if not inspection:
         raise HTTPException(status_code=404, detail="Denetim bulunamadı")

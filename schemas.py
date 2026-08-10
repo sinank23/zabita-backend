@@ -50,7 +50,7 @@ class BusinessResponse(BusinessBase):
 
 # --- DENETİM KRİTERLERİ (CRITERIA) ŞEMALARI ---
 class CriterionBase(BaseModel):
-    category_id: int
+    category_id: int | None = None
     question_text: str
 
 class CriterionCreate(CriterionBase):
@@ -73,11 +73,16 @@ class AnswerResponse(AnswerBase):
     inspection_id: int
     model_config = {"from_attributes": True}
 
+class InspectionAnswerCreate(BaseModel):
+    criterion_id: int
+    is_yes: bool
+
 # --- DENETİM (INSPECTION) ŞEMALARI ---
 class InspectionCreate(BaseModel):
     businessName: str
     address: str
     answers: list[bool]
+    answer_records: list[InspectionAnswerCreate] = []
 
     #30.07.2026 tarihinde eklenen not
     inspector_notes: Optional[str] = None
@@ -128,3 +133,10 @@ class ReviewResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class InspectionAnswerResponse(BaseModel):
+    criterion_id: int
+    question_text: str
+    is_yes: bool
+
+    model_config = {"from_attributes": True}
