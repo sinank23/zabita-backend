@@ -354,9 +354,26 @@ async def complete_inspection(inspection_id: int, db: Session = Depends(get_db))
     if not inspection:
         raise HTTPException(status_code=404, detail="Denetim bulunamadı")
 
-    answers_text = (
-        str(inspection.answers) if inspection.answers else "Cevap yok."
+    answer_records = (
+       db.query(models.InspectionAnswer)
+       .filter(models.InspectionAnswer.inspection_id == inspection_id)
+       .all()
     )
+
+    if answer_records:
+       answers_text = "\n".join(
+          [
+             f"- {answer.criterion.question_text}:"
+             f"{'Evet' if answer.is_yes else 'Hayır'}"
+             for answer in answer_records
+          ]
+       )
+    else:
+       answers_text = (
+          str(inspection.answers)
+          if inspection.answers
+          else "Cevap yok."
+       )
 
     # denetim fotoğraflarının analizlerini alma işlemi
     photos = (

@@ -102,6 +102,10 @@ class InspectionResponse(BaseModel):
     inspector_notes: str | None = None
     inspector_id: int | None = None
     business_id: int | None = None
+    category_name: str | None = None
+    owner_name: str | None = None
+    contact_info: str | None = None
+    
 
     status: str | None = None
     ai_summary: str | None = None
@@ -110,6 +114,7 @@ class InspectionResponse(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
 
+    
     model_config = {"from_attributes": True}
 
 

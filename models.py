@@ -170,6 +170,29 @@ class Inspection(Base):
         cascade="all, delete-orphan"
     )
 
+    # 11.08.2026
+# denetime bağlı işletmenin faaliyet konusu
+    @property
+    def category_name(self):
+        if self.business and self.business.category:
+            return self.business.category.name
+
+        return None
+
+    @property
+    def owner_name(self):
+        if self.business:
+            return self.business.owner_name
+
+        return None
+
+    @property
+    def contact_info(self):
+        if self.business:
+            return self.business.contact_info
+
+        return None
+
 
     
 
