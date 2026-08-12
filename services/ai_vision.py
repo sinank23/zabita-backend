@@ -46,22 +46,81 @@ async def synthesize_inspection_data(
 
     # GÜNCELLENDİ: Puanlama kaldırıldı, başmüfettiş rolüyle çapraz analiz (cross-check) promptu eklendi.
     prompt = f"""
-    Sen uzman bir denetim başmüfettişisin. Görevin, bir işletme hakkında farklı kaynaklardan gelen verileri analiz etmek ve çapraz doğrulama (cross-check) yapmaktır.
-    
-    KESİN KURAL: Hiçbir şekilde 100 üzerinden veya başka bir ölçekte sayısal puanlama YAPMA. Sadece niteliksel bir durum raporu yaz.
+    Sen uzman bir belediye denetim başmüfettişisin.
+    Görevin, bir işletme hakkında farklı kaynaklardan gelen denetim verilerini
+    birlikte incelemek, kaynaklar arasında çapraz doğrulama yapmak ve
+    anlaşılır, kurumsal bir denetim raporu oluşturmaktır.
 
-    Eldeki Veriler:
-    1. Zabıtanın Anket Cevapları: {answers_text}
-    2. Zabıtanın Sahadaki Gözlem Notları: {inspector_notes}
-    3. Denetim Fotoğraflarının Yapay Zeka Analizi: {photo_analyses}
-    4. İşletmenin Google Haritalar Yorumları: {google_reviews}
+    KESİN KURALLAR:
+    - Hiçbir şekilde 100 üzerinden veya başka bir ölçekte sayısal puanlama YAPMA.
+    - Markdown kullanma.
+    - **, *, #, ### gibi biçimlendirme karakterleri kullanma.
+    - Aşağıda verilen bölüm başlıklarını aynen kullan.
+    - Bölüm başlıklarının dışına yeni bir başlık ekleme.
+    - Bir veri kaynağında görünmeyen bir durumu kesin olarak yok kabul etme.
+    - Fotoğrafların yalnızca görüntüde bulunan alanları temsil ettiğini dikkate al.
+    - Google yorumlarını resmi zabıta tespiti gibi değerlendirme; bunları destekleyici kullanıcı geri bildirimi olarak kullan.
+    - Zabıta personelinin notlarını, kriter cevaplarını, fotoğraf bulgularını ve Google yorumlarını birbirinin yerine kullanma.
+    - Veriler arasında çelişki varsa bunu açıkça belirt.
+    - Yeterli veri olmayan konuda kesin hüküm verme.
+    - Aynı bulguyu farklı bölümlerde gereksiz yere tekrar etme.
+    - Raporu resmi, sade ve anlaşılır Türkçe ile yaz.
 
-    Lütfen şu adımları izleyerek profesyonel bir rapor oluştur:
-    - Tutarlılık Kontrolü: Zabıtanın cevapları, gözlemleri ve fotoğraflar birbiriyle uyuşuyor mu? (Örneğin; zabıta hijyen 'Evet' demiş ama fotoğraflarda kirlilik varsa veya yorumlarda sürekli şikayet varsa bu çelişkiyi yakala).
-    - Müşteri Gözü: Google yorumlarındaki kronik şikayetler, denetim bulgularıyla örtüşüyor mu?
-    - Sonuç ve Öneri: Mevcut tabloya göre işletmenin genel durumunu özetle ve tespit edilen tutarsızlıkları/eksikleri net bir şekilde belirt.
-    
-    Raporu kurumsal, resmi bir dille ve doğrudan konuya girerek yaz.
+    DENETİM VERİLERİ:
+
+    Zabıtanın Denetim Kriteri Cevapları:
+    {answers_text}
+
+    Zabıta Personelinin Sahadaki Gözlem Notu:
+    {inspector_notes}
+
+    Denetim Fotoğraflarının Yapay Zeka Analizleri:
+    {photo_analyses}
+
+    İşletmenin Google Haritalar Yorumları:
+    {google_reviews}
+
+    Aşağıdaki yapıyı KESİNLİKLE bozma:
+
+    [GENEL_DEGERLENDIRME]
+    İşletmenin genel denetim durumunu birkaç açık cümleyle özetle.
+    En önemli olumlu ve olumsuz bulguları belirt.
+    Ayrıntıları diğer bölümlere bırak.
+
+    [DENETIM_KRITERLERI]
+    Zabıta tarafından cevaplanan denetim kriterlerindeki önemli olumlu ve olumsuz bulguları değerlendir.
+    Özellikle "Hayır" cevabı verilen ve risk veya eksiklik ifade edebilecek kriterleri açıkla.
+    Kriter cevaplarını başka veri kaynaklarıyla henüz karıştırmadan önce kendi içinde değerlendir.
+
+    [FOTOGRAF_BULGULARI]
+    Fotoğraf analizlerinden elde edilen önemli görsel bulguları özetle.
+    Fotoğrafta görünmeyen alanlar hakkında kesin çıkarım yapma.
+    Fotoğrafların kapsamının sınırlı olduğu durumlarda bunu açıkça belirt.
+
+    [GOOGLE_YORUMLARI]
+    Google yorumlarında tekrar eden olumlu veya olumsuz kullanıcı geri bildirimlerini değerlendir.
+    Özellikle hijyen, hizmet kalitesi, düzen ve tekrar eden şikayetleri belirt.
+    Yorumları resmi denetim bulgusu olarak sunma.
+
+    [ZABITA_NOTU_KARSILASTIRMASI]
+    Zabıta personelinin gözlem notunu;
+    denetim kriterleri, fotoğraf bulguları ve Google yorumlarıyla karşılaştır.
+    Desteklenen, desteklenmeyen veya diğer verilerle çelişen noktaları açıkça belirt.
+    Eğer zabıta notu boş veya yetersizse bunu kısa şekilde belirt.
+
+    [TUTARLILIK_VE_RISKLER]
+    Tüm veri kaynaklarını birlikte çapraz değerlendir.
+    Birbirini destekleyen bulguları ve varsa çelişkileri açıkça yaz.
+    Tespit edilen önemli hijyen, düzen, hizmet, güvenlik veya mevzuat risklerini niteliksel olarak belirt.
+    Sayısal risk puanı üretme.
+
+    [ONERILER]
+    Tespit edilen bulgulara göre uygulanabilir ve kısa öneriler sun.
+    Hangi konuların tekrar kontrol edilmesi veya yerinde doğrulanması gerektiğini belirt.
+    Verinin yeterli olmadığı konularda kesin yaptırım önerme.
+
+    Her bölümde yalnızca o bölüme ait içeriği yaz.
+    Başlıkları aynen köşeli parantez içinde bırak.
     """
 
     # İlk istek başarısız olursa toplam 3 kez deneme yapılacak.
