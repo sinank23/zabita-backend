@@ -139,6 +139,35 @@ def get_business_by_id(
 
     return business
 
+#14.08.2026 eklendi
+#amaç işleetmenin geçmiş denetimlerini de göstermek
+@router.get(
+        "/{business_id}/inspections",
+        response_model=List[schemas.InspectionResponse]
+)
+def get_business_inspections(
+    business_id: int,
+    db: Session = Depends(get_db),
+):
+    business = db.query(models.Business).filter(
+        models.Business.id == business_id
+    ).first()
+
+    if not business:
+        raise HTTPException(
+            status_code=404,
+            detail="İşletme Bulunamadı"
+        )
+
+    inspections = (
+        db.query(models.Inspection)
+        .filter(models.Inspection.business_id == business_id)
+        .order_by(models.Inspection.inspection_date.desc())
+        .all()
+    )
+
+    return inspections
+
 
 # GOOGLE'DAN YORUMLARI ÇEKİP SİSTEME KAYDETME EKRANI
 @router.post("/{business_id}/sync-reviews")
