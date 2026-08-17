@@ -155,6 +155,9 @@ def get_common_inspection_criteria(
 def create_inspection(
     inspection: schemas.InspectionCreate,
     db: Session = Depends(get_db),
+
+    # Giriş yapan kullanıcıyı JWT token üzerinden al
+    current_user: models.User = Depends(get_current_user),
 ):
     print("------- İSTEK BAŞARIYLA BACKEND'E ULAŞTI -------")
     print(f"Gelen İşletme: {inspection.businessName}")
@@ -170,7 +173,7 @@ def create_inspection(
         # Şimdilik kullanıcı doğrulaması olmadığı için boş bırakıyoruz.
         # inspector_id=1 kullanmak, veritabanında 1 ID'li kullanıcı
         # yoksa Foreign Key hatası çıkarabilir.
-        inspector_id=None,
+        inspector_id=current_user.id,
         business_id=inspection.business_id,
         latitude=inspection.latitude,
         longitude=inspection.longitude,

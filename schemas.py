@@ -105,7 +105,8 @@ class InspectionResponse(BaseModel):
     category_name: str | None = None
     owner_name: str | None = None
     contact_info: str | None = None
-    
+    # Denetimi yapan personelin ad soyad bilgisini Android'e gönder
+    inspector_name: str | None = None   
 
     status: str | None = None
     ai_summary: str | None = None

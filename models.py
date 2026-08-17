@@ -193,6 +193,15 @@ class Inspection(Base):
 
         return None
 
+    #17.08.2026 
+    #personelin adının görünmesi için
+    @property
+    def inspector_name(self):
+        if self.inspector:
+            return self.inspector.full_name
+
+        return None
+
 
     
 
