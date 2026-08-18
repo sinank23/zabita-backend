@@ -51,9 +51,9 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         # Burada token içine "sub" olarak kullanıcının email'ini koyuyoruz
         data={"sub": user.email}, expires_delta=access_token_expires
     )
-    
+
     # 4. Üretilen kimliği mobil/frontend uygulamaya geri gönder
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "role": user.role} #18.08.2026 tarihinde admin rolünü de ekledik
 
 # --- EKSİK OLAN VE IMPORTERROR VERDİREN FONKSİYON ---
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):

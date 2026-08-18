@@ -241,3 +241,104 @@ def get_business_categories(
 ): 
     categories = db.query(models.BusinessCategory).all()
     return categories
+
+#18.08.2026
+#süper adminin yeni işletme kategorisi eklemesi için
+@router.post(
+    "/categories",
+    response_model=schemas.CategoryResponse,
+    status_code=status.HTTP_201_CREATED
+)
+def create_business_category(
+    category: schemas.CategoryCreate,
+    db: Session = Depends(get_db),
+):
+    #aynı isimde kategori var mı
+    existing_category = db.query(models.BusinessCategory).filter(
+        models.BusinessCategory.name == category.name
+    ).first()
+
+    if existing_category:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Bu kategori zaten mevcut."
+        )
+
+    # yeni jkategori ekle
+    new_category = models.BusinessCategory(
+        name=category.name
+    )
+
+    db.add(new_category)
+    db.commit()
+    db.refresh(new_category)
+
+    return new_category
+
+
+#18.08.2026
+#mevcut işletme kategorilerini güncellemek için
+@router.put(
+    "/categories/{category_id}",
+    response_model=schemas.CategoryResponse
+)
+def update_business_category(
+    category_id: int,
+    category: schemas.CategoryCreate,
+    db: Session = Depends(get_db),
+):
+    #güncellenecek kategoriyi bul
+    existing_category = db.query(models.BusinessCategory).filter(
+        models.BusinessCategory.id == category_id
+    ).first()
+
+    if not existing_category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Kategori bulunamadı."
+        )
+
+    duplicate_category = db.query(models.BusinessCategory).filter(
+        models.BusinessCategory.name == category.name,
+        models.BusinessCategory.id != category_id
+
+    ).first()
+
+    if duplicate_category:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Bu kategori adı zaten kullanılıyor.")
+
+    #güncelle
+    existing_category.name = category.name
+
+    db.commit()
+    db.refresh(existing_category)
+
+    return existing_category
+
+
+
+#kategori silme işlemi
+#18.08.2026
+@router.delete("/categories/{category_id}")
+def delete_business_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+): 
+    # silinecek kategoriyi bul
+    existing_category = db.query(models.BusinessCategory).filter(
+        models.BusinessCategory.id == category_id
+    ).first()
+
+    if not existing_category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Kategori bulunamadı."
+        )
+
+    db.delete(existing_category)
+    db.commit()
+
+    return {
+        "message": "Kategori başarıyla silindi.",
+        "category_id": category_id
+    }
