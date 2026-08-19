@@ -92,16 +92,22 @@ def create_criteria(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    category = (
-        db.query(models.BusinessCategory)
-        .filter(models.BusinessCategory.id == criteria.category_id)
-        .first()
-    )
+    #19.08.2026
+    # Kriter belirli bir kategoriye bağlıysa kategorinin gerçekten var olduğunu kontrol et
+    # category_id boşsa kriter tüm işletmeler için ortak kriter olarak kaydedilebilir
+    if criteria.category_id is not None:
 
-    if not category:
-        raise HTTPException(
-            status_code=404, detail="Belirtilen kategori bulunamadı."
+        category = (
+            db.query(models.BusinessCategory)
+            .filter(models.BusinessCategory.id == criteria.category_id)
+            .first()
         )
+
+        if not category:
+            raise HTTPException(
+                status_code=404,
+                detail="Belirtilen kategori bulunamadı."
+            )
 
     new_criteria = models.InspectionCriterion(**criteria.model_dump())
 
@@ -144,6 +150,74 @@ def get_common_inspection_criteria(
     )
 
     return criteria
+
+#19.08.2026
+# süper admin panelinde tüm denetim kriterleri gelsin
+@router.get(
+    "/criteria/admin/all",
+    response_model=List[schemas.CriterionResponse],
+)
+def get_all_inspection_criteria(
+    db: Session = Depends(get_db),
+):
+    # tüm kriterleri tek listede getir
+    criteria = (
+        db.query(models.InspectionCriterion)
+        .order_by(models.InspectionCriterion.id.asc())
+        .all()
+
+    )
+
+    return criteria
+
+#19.08.2026
+# Süper Admin tarafından mevcut denetim kriterini güncellemek için
+@router.put(
+    "/criteria/admin/{criterion_id}",
+    response_model=schemas.CriterionResponse
+)
+def update_inspection_criterion(
+    criterion_id: int,
+    criterion: schemas.CriterionCreate,
+    db: Session = Depends(get_db),
+):
+    # Güncellenecek kriteri ID üzerinden bul
+    existing_criterion = (
+        db.query(models.InspectionCriterion)
+        .filter(models.InspectionCriterion.id == criterion_id)
+        .first()
+    )
+
+    if not existing_criterion:
+        raise HTTPException(
+            status_code=404,
+            detail="Denetim kriteri bulunamadı."
+        )
+
+    # Kriter belirli bir kategoriye bağlanacaksa kategoriyi kontrol et
+    if criterion.category_id is not None:
+        category = (
+            db.query(models.BusinessCategory)
+            .filter(models.BusinessCategory.id == criterion.category_id)
+            .first()
+        )
+
+        if not category:
+            raise HTTPException(
+                status_code=404,
+                detail="Belirtilen kategori bulunamadı."
+            )
+
+    # Kriter metnini ve kategori bağlantısını güncelle
+    existing_criterion.question_text = criterion.question_text
+    existing_criterion.category_id = criterion.category_id
+
+    db.commit()
+    db.refresh(existing_criterion)
+
+    return existing_criterion
+
+
 
 
 # ---------------------------------------------------------
@@ -845,7 +919,6 @@ def get_inspection_photos(inspection_id: int, db: Session = Depends(get_db)):
 # ---------------------------------------------------------
 
 
-
 @router.post("/{inspection_id}/complete/")
 async def complete_inspection(inspection_id: int, db: Session = Depends(get_db)):
 
@@ -860,26 +933,26 @@ async def complete_inspection(inspection_id: int, db: Session = Depends(get_db))
         raise HTTPException(status_code=404, detail="Denetim bulunamadı")
 
     answer_records = (
-       db.query(models.InspectionAnswer)
-       .filter(models.InspectionAnswer.inspection_id == inspection_id)
-       .all()
+        db.query(models.InspectionAnswer)
+        .filter(models.InspectionAnswer.inspection_id == inspection_id)
+        .all()
     )
 
     if answer_records:
-       answers_text = "\n".join(
-          [
-             f"- {answer.criterion.question_text}:"
-             f"{'Evet' if answer.is_yes else 'Hayır'}"
-             for answer in answer_records
-          ]
-       )
+        answers_text = "\n".join(
+            [
+                f"- {answer.criterion.question_text}:"
+                f"{'Evet' if answer.is_yes else 'Hayır'}"
+                for answer in answer_records
+            ]
+        )
 
     else:
-       answers_text = (
-          str(inspection.answers)
-          if inspection.answers
-          else "Cevap yok."
-       )
+        answers_text = (
+            str(inspection.answers)
+            if inspection.answers
+            else "Cevap yok."
+        )
 
     # denetim fotoğraflarının analizlerini alma işlemi
     photos = (
@@ -913,7 +986,7 @@ async def complete_inspection(inspection_id: int, db: Session = Depends(get_db))
         if reviews_list:
             reviews_text = "\n".join(reviews_list)
 
-    # google geminiyle fotoğraf analizi
+        # google geminiyle fotoğraf analizi
         # Google Gemini ile nihai denetim raporu oluşturma
     try:
         ai_report = await synthesize_inspection_data(
@@ -958,6 +1031,7 @@ async def complete_inspection(inspection_id: int, db: Session = Depends(get_db))
         "ai_report": ai_report,
     }
 
+
 # ---------------------------------------------------------
 # GOOGLE YORUMLARI
 # ---------------------------------------------------------
@@ -977,7 +1051,7 @@ async def sync_business_reviews(business_id: int, db: Session = Depends(get_db))
     if not business.google_place_id:
         raise HTTPException(
             status_code=400,
-            detail=("İşletmenin Google Place ID bilgisi " "tanımlı değil."),
+            detail=("İşletmenin Google Place ID bilgisi tanımlı değil."),
         )
 
     reviews = await fetch_google_reviews(business.google_place_id)
@@ -1005,7 +1079,7 @@ async def sync_business_reviews(business_id: int, db: Session = Depends(get_db))
         )
 
     return {
-        "message": (f"{len(reviews)} adet yorum " "başarıyla senkronize edildi.")
+        "message": (f"{len(reviews)} adet yorum başarıyla senkronize edildi.")
     }
 
 
