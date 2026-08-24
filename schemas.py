@@ -12,6 +12,14 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str 
 
+    #24.08.2026
+# Süper Admin tarafından kullanıcı bilgilerini güncellemek için
+class UserUpdate(BaseModel):
+    full_name: str
+    email: str
+    role: str
+    password: Optional[str] = None
+
 class UserResponse(UserBase):
     id: int
     created_at: datetime

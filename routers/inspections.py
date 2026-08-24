@@ -224,6 +224,57 @@ def update_inspection_criterion(
 # DENETİM KAYDETME
 # ---------------------------------------------------------
 
+#24.08.2026
+#denetim kriteri silmek için(süper admin)
+
+#24.08.2026
+# Süper Admin tarafından denetim kriterini silmek için
+@router.delete("/criteria/admin/{criterion_id}")
+def delete_inspection_criterion(
+    criterion_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+
+    # silinecek kriteri ID üzerinden bul
+    criterion = (
+        db.query(models.InspectionCriterion)
+        .filter(models.InspectionCriterion.id == criterion_id)
+        .first()
+    )
+
+    if not criterion:
+        raise HTTPException(
+            status_code=404,
+            detail="Denetim kriteri bulunamadı."
+        )
+
+    try:
+
+        # kriter geçmiş denetimlerde kullanılmışsa
+        # ona bağlı cevap kayıtlarını da sil
+        db.query(models.InspectionAnswer).filter(
+            models.InspectionAnswer.criterion_id == criterion_id
+        ).delete(synchronize_session=False)
+
+        # kriter kaydını sil
+        db.delete(criterion)
+
+        db.commit()
+
+        return {
+            "message": f"{criterion_id} ID'li denetim kriteri başarıyla silindi."
+        }
+
+    except Exception as error:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Denetim kriteri silinirken hata oluştu: {str(error)}"
+        )
+
 
 @router.post("/", response_model=schemas.InspectionResponse)
 def create_inspection(
