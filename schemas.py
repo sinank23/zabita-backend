@@ -154,3 +154,34 @@ class InspectionAnswerResponse(BaseModel):
     is_yes: bool
 
     model_config = {"from_attributes": True}
+
+#25.08.2026 
+#trafik zabıta şemaları
+class TrafficInspectionCreate(BaseModel):
+    violation_type: str
+    plate: str
+    vehicle_type: Optional[str] = None
+    address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    description: Optional[str] = None
+    action_taken: Optional[str] = None
+
+
+#25.08.2026
+# Trafik işlem kaydı Android tarafına dönerken kullanılacak veri
+class TrafficInspectionResponse(BaseModel):
+    id: int
+    violation_type: str
+    plate: str
+    vehicle_type: Optional[str] = None
+    address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    description: Optional[str] = None
+    action_taken: Optional[str] = None
+    status: Optional[str] = None
+    inspector_id: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

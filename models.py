@@ -24,7 +24,7 @@ class User(Base):
     full_name = Column(String(100), nullable=False)
     email = Column(String(100), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    role = Column(String(10), default="zabita")
+    role = Column(String(20), default="zabita")
     created_at = Column(DateTime, default=datetime.utcnow)
 
     inspections = relationship(
@@ -281,3 +281,39 @@ class GoogleReview(Base):
         "Business",
         back_populates="google_reviews"
     )
+
+#25.08.2026
+# trafik zabıta tarafından oluşturulan trafik işlem kayıtlarını tutmak için
+
+class TrafficInspection(Base):
+    __tablename__ = "traffic_inspections"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # TRAFİK İŞLEMİNİN TÜRÜ
+    violation_type = Column(String(100), nullable=False)
+
+    #araç bilgileri
+    plate = Column(String(20), nullable=False)
+    vehicle_type = Column(String(50), nullable=True)
+
+    #olayın gerçekleştiği yer
+    address = Column(String(500), nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+
+    description = Column(String(255), nullable=True)
+
+    action_taken = Column(String(255), nullable=True)
+
+    status = Column(String(50), default="Kaydedildi")
+
+    inspector_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False
+    )
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    inspector = relationship("User")
