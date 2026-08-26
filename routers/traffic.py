@@ -59,3 +59,30 @@ def create_traffic_inspection(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Trafik işlemi oluşturulurken hata oluştu: {str(e)}"
         )
+
+    
+#26.08.2026
+# trafik zabıta kayıtlarının getirilmesi iiçin
+@router.get(
+    "/",
+    response_model=list[schemas.TrafficInspectionResponse]
+)
+def get_traffic_inspections(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    
+    # sadece trafik zabıta görebilsin
+    if current_user.role != "trafik_zabita":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bu işlem için trafik zabıtası yetkilidir."
+        )
+
+    traffic_records = (
+        db.query(models.TrafficInspection)
+        .order_by(models.TrafficInspection.id.desc())
+        .all()
+    )
+
+    return traffic_records
