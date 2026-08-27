@@ -317,3 +317,35 @@ class TrafficInspection(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     inspector = relationship("User")
+
+    #27.08.2026
+    #trafik işlemine bağlı birden fazla fotoğrafı tutmak için
+
+    photos = relationship(
+        "TrafficInspectionPhoto",
+        back_populates="traffic_inspection",
+        cascade="all, delete-orphan"
+    )
+
+
+#27.08.2026
+#trafik zabıta işlem kayıtlarına bağlı fotoğrafları tutmak için
+class TrafficInspectionPhoto(Base):
+    __tablename__ = "traffic_inspection_photos"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    traffic_inspection_id = Column(
+        Integer,
+        ForeignKey("traffic_inspections.id"),
+        nullable=False
+    )
+
+    photo_path = Column(String(500), nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    traffic_inspection = relationship(
+        "TrafficInspection",
+        back_populates="photos"
+    )
