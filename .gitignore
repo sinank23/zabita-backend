@@ -11,5 +11,6 @@ __pycache__/
 # Sanal ortam (EÄŸer venv kullanÄ±yorsan)
 venv/
 env/
-# Denetim sýrasýnda yüklenen fotoðraflar
+# Denetim sï¿½rasï¿½nda yï¿½klenen fotoï¿½raflar
 uploads/
+reports/
