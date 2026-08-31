@@ -126,8 +126,16 @@ def build_traffic_pdf(traffic_record):
 
     elements = []
 
-    elements.append(Paragraph("TRAFİK ZABITA İŞLEM RAPORU", title_style))
-    elements.append(Spacer(1, 6))
+    elements.append(
+        Paragraph(
+            "TRAFİK ZABITA İŞLEM RAPORU",
+            title_style
+        )
+    )
+
+    elements.append(
+        Spacer(1, 6)
+    )
 
     info_data = [
         ["Kayıt No", str(traffic_record.id)],
@@ -136,51 +144,172 @@ def build_traffic_pdf(traffic_record):
         ["Araç Türü", traffic_record.vehicle_type or "-"],
         ["Adres", traffic_record.address or "-"],
         ["Durum", traffic_record.status or "-"],
-        ["Personel ID", str(traffic_record.inspector_id) if traffic_record.inspector_id else "-"],
-        ["Tarih", str(traffic_record.created_at) if traffic_record.created_at else "-"],
-        ["Enlem", str(traffic_record.latitude) if traffic_record.latitude is not None else "-"],
-        ["Boylam", str(traffic_record.longitude) if traffic_record.longitude is not None else "-"],
+        [
+            "Personel ID",
+            str(traffic_record.inspector_id)
+            if traffic_record.inspector_id
+            else "-"
+        ],
+        [
+            "Tarih",
+            str(traffic_record.created_at)
+            if traffic_record.created_at
+            else "-"
+        ],
+        [
+            "Enlem",
+            str(traffic_record.latitude)
+            if traffic_record.latitude is not None
+            else "-"
+        ],
+        [
+            "Boylam",
+            str(traffic_record.longitude)
+            if traffic_record.longitude is not None
+            else "-"
+        ],
     ]
 
-    info_table = Table(info_data, colWidths=[45 * mm, 120 * mm])
-    info_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#EAF0FF")),
-        ("TEXTCOLOR", (0, 0), (-1, -1), colors.black),
-        ("FONTNAME", (0, 0), (0, -1), "ArialTR-Bold"),
-        ("FONTNAME", (1, 0), (1, -1), "ArialTR"),
-        ("FONTSIZE", (0, 0), (-1, -1), 9.5),
-        ("LEADING", (0, 0), (-1, -1), 12),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#B8C4E3")),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ("LEFTPADDING", (0, 0), (-1, -1), 6),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-    ]))
+    info_table = Table(
+        info_data,
+        colWidths=[
+            45 * mm,
+            120 * mm
+        ]
+    )
 
-    elements.append(Paragraph("Genel Bilgiler", section_style))
-    elements.append(info_table)
-    elements.append(Spacer(1, 12))
+    info_table.setStyle(
+        TableStyle(
+            [
+                (
+                    "BACKGROUND",
+                    (0, 0),
+                    (0, -1),
+                    colors.HexColor("#EAF0FF")
+                ),
+                (
+                    "TEXTCOLOR",
+                    (0, 0),
+                    (-1, -1),
+                    colors.black
+                ),
+                (
+                    "FONTNAME",
+                    (0, 0),
+                    (0, -1),
+                    "ArialTR-Bold"
+                ),
+                (
+                    "FONTNAME",
+                    (1, 0),
+                    (1, -1),
+                    "ArialTR"
+                ),
+                (
+                    "FONTSIZE",
+                    (0, 0),
+                    (-1, -1),
+                    9.5
+                ),
+                (
+                    "LEADING",
+                    (0, 0),
+                    (-1, -1),
+                    12
+                ),
+                (
+                    "GRID",
+                    (0, 0),
+                    (-1, -1),
+                    0.5,
+                    colors.HexColor("#B8C4E3")
+                ),
+                (
+                    "VALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "TOP"
+                ),
+                (
+                    "TOPPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    6
+                ),
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    6
+                ),
+                (
+                    "LEFTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    6
+                ),
+                (
+                    "RIGHTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    6
+                ),
+            ]
+        )
+    )
 
-    elements.append(Paragraph("Açıklama", section_style))
     elements.append(
         Paragraph(
-            traffic_record.description or "Açıklama girilmemiştir.",
+            "Genel Bilgiler",
+            section_style
+        )
+    )
+
+    elements.append(
+        info_table
+    )
+
+    elements.append(
+        Spacer(1, 12)
+    )
+
+    elements.append(
+        Paragraph(
+            "Açıklama",
+            section_style
+        )
+    )
+
+    elements.append(
+        Paragraph(
+            traffic_record.description
+            or "Açıklama girilmemiştir.",
             normal_style
         )
     )
-    elements.append(Spacer(1, 10))
 
-    elements.append(Paragraph("Yapılan İşlem", section_style))
+    elements.append(
+        Spacer(1, 10)
+    )
+
     elements.append(
         Paragraph(
-            traffic_record.action_taken or "Yapılan işlem bilgisi girilmemiştir.",
+            "Yapılan İşlem",
+            section_style
+        )
+    )
+
+    elements.append(
+        Paragraph(
+            traffic_record.action_taken
+            or "Yapılan işlem bilgisi girilmemiştir.",
             normal_style
         )
     )
 
-    elements.append(Spacer(1, 14))
-
+    elements.append(
+        Spacer(1, 14)
+    )
 
     #28.08.2026
     # trafik işlemine eklenen fotoğrafları PDF raporunda göstermek için
@@ -199,7 +328,10 @@ def build_traffic_pdf(traffic_record):
             Spacer(1, 6)
         )
 
-        for index, photo in enumerate(traffic_photos, start=1):
+        for index, photo in enumerate(
+            traffic_photos,
+            start=1
+        ):
 
             photo_path = photo.photo_path
 
@@ -210,9 +342,13 @@ def build_traffic_pdf(traffic_record):
 
                 try:
 
-                    image_reader = ImageReader(photo_path)
+                    image_reader = ImageReader(
+                        photo_path
+                    )
 
-                    image_width, image_height = image_reader.getSize()
+                    image_width, image_height = (
+                        image_reader.getSize()
+                    )
 
                     max_width = 150 * mm
                     max_height = 90 * mm
@@ -222,9 +358,13 @@ def build_traffic_pdf(traffic_record):
                         max_height / image_height
                     )
 
-                    displayed_width = image_width * scale
+                    displayed_width = (
+                        image_width * scale
+                    )
 
-                    displayed_height = image_height * scale
+                    displayed_height = (
+                        image_height * scale
+                    )
 
                     elements.append(
                         Paragraph(
@@ -255,7 +395,6 @@ def build_traffic_pdf(traffic_record):
                         f"Trafik fotoğrafı PDF'e eklenemedi: {e}"
                     )
 
-
     elements.append(
         Spacer(1, 10)
     )
@@ -268,7 +407,9 @@ def build_traffic_pdf(traffic_record):
     )
 
     doc.build(elements)
+
     buffer.seek(0)
+
     return buffer
 
 
@@ -319,7 +460,7 @@ def create_traffic_inspection(
             detail=f"Trafik işlemi oluşturulurken hata oluştu: {str(e)}"
         )
 
-
+    
 #26.08.2026
 # trafik zabıta kayıtlarının getirilmesi iiçin
 @router.get(
@@ -330,13 +471,14 @@ def get_traffic_inspections(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-
-    # sadece trafik zabıta görebilsin
-    if current_user.role != "trafik_zabita":
+    
+    #31.08.2026
+# trafik kayıtlarını trafik zabıta ve süper admin görebilsin
+    if current_user.role not in ["trafik_zabita", "superadmin"]:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Bu işlem için trafik zabıtası yetkilidir."
-        )
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Bu işlem için Trafik Zabıta veya Süper Admin yetkisi gereklidir."
+    )
 
     traffic_records = (
         db.query(models.TrafficInspection)
@@ -345,6 +487,8 @@ def get_traffic_inspections(
     )
 
     return traffic_records
+
+
 
 #27.08.2026
 # trafik zabıta işlem kaydına fotoğraf yüklemek için
@@ -360,7 +504,7 @@ async def upload_traffic_inspection_photo(
 ):
 
     # sadece trafik zabıta personeli fotoğraf yükleyebilsin
-    if current_user.role != "trafik_zabita":
+    if current_user.role not in ["trafik_zabita", "superadmin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Bu işlem için Trafik Zabıta yetkisi gereklidir."
@@ -455,6 +599,71 @@ async def upload_traffic_inspection_photo(
     }
 
 
+
+
+#31.08.2026
+# seçilen trafik işlem kaydına ait fotoğrafları listelemek için
+@router.get("/{traffic_inspection_id}/photos/")
+def get_traffic_inspection_photos(
+    traffic_inspection_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+
+    # sadece trafik zabıta personeli fotoğrafları görebilsin
+    if current_user.role != "trafik_zabita":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bu işlem için Trafik Zabıta yetkisi gereklidir."
+        )
+
+    # ilgili trafik kaydının varlığını kontrol et
+    traffic_inspection = (
+        db.query(models.TrafficInspection)
+        .filter(
+            models.TrafficInspection.id == traffic_inspection_id
+        )
+        .first()
+    )
+
+    if not traffic_inspection:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Trafik işlem kaydı bulunamadı."
+        )
+
+    traffic_photos = (
+        db.query(models.TrafficInspectionPhoto)
+        .filter(
+            models.TrafficInspectionPhoto.traffic_inspection_id
+            == traffic_inspection_id
+        )
+        .order_by(
+            models.TrafficInspectionPhoto.id.asc()
+        )
+        .all()
+    )
+
+    return [
+    {
+        "photo_id": photo.id,
+        "traffic_inspection_id": photo.traffic_inspection_id,
+        "photo_path": photo.photo_path,
+
+        #31.08.2026
+        # Android tarafının fotoğrafı görüntüleyebilmesi için erişilebilir URL
+        "photo_url": (
+            "/uploads/"
+            + photo.photo_path
+                .replace("\\", "/")
+                .replace("uploads/", "")
+        ),
+
+        "created_at": photo.created_at
+    }
+    for photo in traffic_photos
+]
+
 #27.08.2026
 # trafik zabıta işlem kaydı için PDF raporu oluşturmak için
 @router.get("/{traffic_inspection_id}/report/pdf")
@@ -484,3 +693,130 @@ def get_traffic_inspection_pdf(
             "Content-Disposition": f'inline; filename="traffic_report_{traffic_inspection_id}.pdf"'
         }
     )
+
+#31.08.2026
+# süper admin trafik işlem kaydının durumunu güncelleyebilsin
+@router.patch("/{traffic_inspection_id}/status")
+def update_traffic_inspection_status(
+    traffic_inspection_id: int,
+    new_status: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+
+    # sadece süper admin durum değiştirebilsin
+    if current_user.role != "superadmin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bu işlem için Süper Admin yetkisi gereklidir."
+        )
+
+    allowed_statuses = [
+        "Kaydedildi",
+        "İnceleniyor",
+        "Tamamlandı",
+        "İptal Edildi"
+    ]
+
+    if new_status not in allowed_statuses:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Geçersiz durum. Kullanılabilecek durumlar: "
+                + ", ".join(allowed_statuses)
+            )
+        )
+
+    traffic_inspection = (
+        db.query(models.TrafficInspection)
+        .filter(
+            models.TrafficInspection.id == traffic_inspection_id
+        )
+        .first()
+    )
+
+    if not traffic_inspection:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Trafik işlem kaydı bulunamadı."
+        )
+
+    try:
+
+        traffic_inspection.status = new_status
+
+        db.commit()
+        db.refresh(traffic_inspection)
+
+        return {
+            "message": "Trafik işlem durumu başarıyla güncellendi.",
+            "traffic_inspection_id": traffic_inspection.id,
+            "status": traffic_inspection.status
+        }
+
+    except Exception as error:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Durum güncellenirken hata oluştu: {str(error)}"
+        )
+
+#31.08.2026
+# süper admin trafik işlem kaydını silebilsin
+@router.delete("/{traffic_inspection_id}")
+def delete_traffic_inspection(
+    traffic_inspection_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+
+    # sadece süper admin trafik kaydı silebilsin
+    if current_user.role != "superadmin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bu işlem için Süper Admin yetkisi gereklidir."
+        )
+
+    traffic_inspection = (
+        db.query(models.TrafficInspection)
+        .filter(
+            models.TrafficInspection.id == traffic_inspection_id
+        )
+        .first()
+    )
+
+    if not traffic_inspection:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Trafik işlem kaydı bulunamadı."
+        )
+
+    try:
+
+        # trafik kaydına bağlı fotoğraf dosyalarını diskten sil
+        for photo in traffic_inspection.photos:
+
+            if (
+                photo.photo_path
+                and os.path.exists(photo.photo_path)
+            ):
+                os.remove(photo.photo_path)
+
+        db.delete(traffic_inspection)
+        db.commit()
+
+        return {
+            "message": "Trafik işlem kaydı başarıyla silindi.",
+            "traffic_inspection_id": traffic_inspection_id
+        }
+
+    except Exception as error:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Trafik kaydı silinirken hata oluştu: {str(error)}"
+        )
