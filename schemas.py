@@ -40,12 +40,13 @@ class CategoryResponse(CategoryBase):
 # --- İŞLETME (BUSINESS) ŞEMALARI ---
 class BusinessBase(BaseModel):
     name: str
-    category_id: int 
+    category_id: Optional[int] = None
+
+    #01.09.2026
+    # Google'dan gelen veya zabıtanın elle girdiği faaliyet konusu
+    activity_type: Optional[str] = None
+
     address: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    owner_name: Optional[str] = None
-    contact_info: Optional[str] = None
 
 class BusinessCreate(BusinessBase):
     pass
@@ -182,6 +183,9 @@ class TrafficInspectionResponse(BaseModel):
     action_taken: Optional[str] = None
     status: Optional[str] = None
     inspector_id: int
+    #01.09.2026
+# trafik işlemini gerçekleştiren personelin adını istemciye göndermek için
+    inspector_name: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

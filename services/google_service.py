@@ -95,11 +95,12 @@ async def search_google_places(
 
     # googledean ihtiyacımız olan alanları alalım gereksiz veriler gelmesin
     "X-Goog-FieldMask": (
-        "places.id,"
-        "places.displayName,"
-        "places.formattedAddress,"
-        "places.location"
-    )
+    "places.id,"
+    "places.displayName,"
+    "places.formattedAddress,"
+    "places.location,"
+    "places.primaryTypeDisplayName"
+)
 }
 
   # Google'a gönderilecek arama verileri.
@@ -165,6 +166,13 @@ async def search_google_places(
                 # Enlem ve boylam da location nesnesinin içinde geliyor.
                 location = place.get("location", {})
 
+                #01.09.2026
+# Google Places üzerinden işletmenin ana faaliyet türünü almak için
+                primary_type_display_name = place.get(
+                    "primaryTypeDisplayName",
+                    {}
+)
+
                 # Yalnızca uygulamamızın ihtiyaç duyduğu alanları alıyoruz.
                 processed_places.append({
                     # Google Maps üzerindeki benzersiz işletme kimliği.
@@ -182,7 +190,10 @@ async def search_google_places(
 
                     # İşletmenin konumu.
                     "latitude": location.get("latitude"),
-                    "longitude": location.get("longitude")
+                    "longitude": location.get("longitude"),
+
+                    #işletmenin google mapste görünen faaliyet konusu
+                    "activity_type": primary_type_display_name.get("text")
                 })
 
             # Düzenlediğimiz işletme listesini endpoint'e geri gönderiyoruz.

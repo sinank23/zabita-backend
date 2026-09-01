@@ -65,6 +65,9 @@ class Business(Base):
     longitude = Column(Float, nullable=True)
     owner_name = Column(String(100), nullable=True)
     contact_info = Column(String(100), nullable=True)
+    #01.09.2026
+# Google'dan gelen veya zabıtanın elle girdiği faaliyet konusu
+    activity_type = Column(String(150), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Google Maps işletme kimliği
@@ -174,8 +177,15 @@ class Inspection(Base):
 # denetime bağlı işletmenin faaliyet konusu
     @property
     def category_name(self):
-        if self.business and self.business.category:
-            return self.business.category.name
+    #01.09.2026
+    # yeni kayıtlarda serbest faaliyet konusu kullanılır,
+    # eski kayıtlarda kategori ilişkisine geri düşülür
+        if self.business:
+            if self.business.activity_type:
+                return self.business.activity_type
+
+            if self.business.category:
+                return self.business.category.name
 
         return None
 

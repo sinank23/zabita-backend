@@ -336,11 +336,39 @@ def create_inspection(
         )
 
 
+#01.09.2026
+# normal zabıta sadece kendi denetimlerini, süper admin ise tüm denetimleri görsün
 @router.get("/", response_model=List[schemas.InspectionResponse])
-def get_inspections(db: Session = Depends(get_db)):
-    inspections = (
-        db.query(models.Inspection).order_by(models.Inspection.id.desc()).all()
-    )
+def get_inspections(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+
+    # sadece normal zabıta ve süper admin normal denetim kayıtlarını görebilsin
+    if current_user.role not in ["zabita", "superadmin"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Bu işlem için Zabıta veya Süper Admin yetkisi gereklidir."
+        )
+
+    if current_user.role == "superadmin":
+
+        inspections = (
+            db.query(models.Inspection)
+            .order_by(models.Inspection.id.desc())
+            .all()
+        )
+
+    else:
+
+        inspections = (
+            db.query(models.Inspection)
+            .filter(
+                models.Inspection.inspector_id == current_user.id
+            )
+            .order_by(models.Inspection.id.desc())
+            .all()
+        )
 
     return inspections
 

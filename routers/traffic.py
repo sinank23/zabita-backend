@@ -480,13 +480,39 @@ def get_traffic_inspections(
         detail="Bu işlem için Trafik Zabıta veya Süper Admin yetkisi gereklidir."
     )
 
-    traffic_records = (
+    #01.09.2026
+# trafik zabıta sadece kendi kayıtlarını, süper admin ise tüm kayıtları görsün
+    if current_user.role == "superadmin":
+
+        traffic_records = (
         db.query(models.TrafficInspection)
         .order_by(models.TrafficInspection.id.desc())
         .all()
     )
 
+    else:
+
+        traffic_records = (
+        db.query(models.TrafficInspection)
+        .filter(
+            models.TrafficInspection.inspector_id == current_user.id
+        )
+        .order_by(models.TrafficInspection.id.desc())
+        .all()
+    )
+
+            #01.09.2026
+    # trafik kayıtlarında işlemi yapan personelin adını istemciye göndermek için
+    for traffic_record in traffic_records:
+        traffic_record.inspector_name = (
+            traffic_record.inspector.full_name
+            if traffic_record.inspector
+            else None
+        )
+
     return traffic_records
+
+    
 
 
 
