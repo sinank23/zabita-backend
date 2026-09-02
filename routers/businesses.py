@@ -55,8 +55,37 @@ def create_business(
 
     # İşletme zaten kayıtlıysa hata vermek yerine mevcut kaydı geri döndürüyoruz.
     # Böylece aynı işletmede daha sonra tekrar denetim yapılabilir.
+    #02.09.2026
+# işletme daha önce kayıtlıysa yeni gelen bilgileri mevcut kayda işle
     if existing_business:
+
+        if business.address is not None:
+            existing_business.address = business.address
+
+        if business.latitude is not None:
+            existing_business.latitude = business.latitude
+
+        if business.longitude is not None:
+            existing_business.longitude = business.longitude
+
+        if business.owner_name is not None:
+            existing_business.owner_name = business.owner_name
+
+        if business.contact_info is not None:
+            existing_business.contact_info = business.contact_info
+
+        if business.activity_type is not None:
+            existing_business.activity_type = business.activity_type
+
+        if business.category_id is not None:
+            existing_business.category_id = business.category_id
+
+        db.commit()
+        db.refresh(existing_business)
+
         return existing_business
+
+    print("BUSINESS REQUEST:", business.model_dump())
         
     # 2. Dışarıdan gelen temiz bilgileri alıp, bizim veritabanının anlayacağı şekle sokuyoruz.
     new_business = models.Business(**business.model_dump())
@@ -179,6 +208,7 @@ async def sync_business_reviews(
     """
     Bu kısım bizim Google operasyonumuz. Dışarıdan veriyi alıp içeri kaydediyoruz.
     """
+
     # 1. Adım: Önce "Böyle bir dükkan gerçekten var mı?" diye sisteme bakıyoruz.
     business = db.query(models.Business).filter(models.Business.id == business_id).first()
     

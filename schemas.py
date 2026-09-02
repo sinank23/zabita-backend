@@ -47,6 +47,11 @@ class BusinessBase(BaseModel):
     activity_type: Optional[str] = None
 
     address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+    owner_name: Optional[str] = None
+    contact_info: Optional[str] = None
 
 class BusinessCreate(BusinessBase):
     pass

@@ -380,6 +380,7 @@ def get_inspections(
 def generate_inspection_pdf(
     inspection_id: int,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     inspection = (
         db.query(models.Inspection)
@@ -392,6 +393,20 @@ def generate_inspection_pdf(
             status_code=404,
             detail="PDF raporu oluşturulacak denetim bulunamadı."
         )
+
+    #02.09.2026
+# normal zabıta yalnızca kendi denetiminin PDF raporunu görüntüleyebilsin
+    if current_user.role == "zabita" and inspection.inspector_id != current_user.id:
+        raise HTTPException(
+        status_code=403,
+        detail="Bu denetimin PDF raporunu görüntüleme yetkiniz yok."
+    )
+
+    if current_user.role not in ["zabita", "superadmin"]:
+        raise HTTPException(
+        status_code=403,
+        detail="Bu işlem için Zabıta veya Süper Admin yetkisi gereklidir."
+    )
 
     answer_records = (
         db.query(models.InspectionAnswer)
@@ -817,9 +832,10 @@ def generate_inspection_pdf(
     "/{inspection_id}/answers",
     response_model=List[schemas.InspectionAnswerResponse],
 )
-def get_inspection_answers(
-    inspection_id: int,
+def get_inspection_answers( 
+    inspection_id: int, 
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     inspection = (
         db.query(models.Inspection)
@@ -832,6 +848,21 @@ def get_inspection_answers(
             status_code=404,
             detail="Denetim bulunamadı."
         )
+
+
+    #02.09.2026
+# normal zabıta yalnızca kendi denetiminin cevaplarını görebilsin
+    if current_user.role == "zabita" and inspection.inspector_id != current_user.id:
+        raise HTTPException(
+        status_code=403,
+        detail="Bu denetimin cevaplarını görüntüleme yetkiniz yok."
+    )
+
+    if current_user.role not in ["zabita", "superadmin"]:
+        raise HTTPException(
+        status_code=403,
+        detail="Bu işlem için Zabıta veya Süper Admin yetkisi gereklidir."
+    )
 
     answer_records = (
         db.query(models.InspectionAnswer)
