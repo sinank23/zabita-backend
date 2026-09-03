@@ -85,7 +85,6 @@ def create_business(
 
         return existing_business
 
-    print("BUSINESS REQUEST:", business.model_dump())
         
     # 2. Dışarıdan gelen temiz bilgileri alıp, bizim veritabanının anlayacağı şekle sokuyoruz.
     new_business = models.Business(**business.model_dump())
